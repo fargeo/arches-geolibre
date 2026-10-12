@@ -12,9 +12,13 @@ import {
     toArchesTileFeature,
 } from "@/arches_geolibre/utils/tile-collections.ts";
 
+import { buildArchesLayerStyle } from "@/arches_geolibre/utils/layer-style.ts";
+
+import type { Feature, Geometry, Position } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
 import type {
     ArchesGeometryNode,
+    ArchesLayerSource,
     ArchesSession,
     LoadedArchesLayer,
 } from "@/arches_geolibre/types.ts";
@@ -26,32 +30,73 @@ export interface PushResult {
     failures: string[];
 }
 
+export interface LoadArchesLayerOptions {
+    source: ArchesLayerSource;
+    isWritable: boolean;
+    signal?: AbortSignal;
+}
+
 export function archesSourcePath(
     session: ArchesSession,
     nodeId: string,
+    source: ArchesLayerSource,
 ): string {
-    return `arches://${new URL(session.instanceUrl).host}/nodes/${nodeId}`;
+    const host = new URL(session.instanceUrl).host;
+    return source.kind === "spatial-view"
+        ? `arches://${host}/spatialviews/${source.slug}`
+        : `arches://${host}/nodes/${nodeId}`;
 }
 
+export function archesLayerName(
+    node: ArchesGeometryNode,
+    source: ArchesLayerSource,
+): string {
+    return source.kind === "spatial-view"
+        ? source.slug
+        : `${node.resourcemodelname}: ${node.name}`;
+}
+
+/**
+ * Loads a geometry node into a new GeoLibre layer, styled as Arches styles
+ * it, and zooms to it. A spatial view loads its geometry node: on 8.1 there
+ * is no endpoint that reads a view's attribute columns.
+ */
 export async function loadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     node: ArchesGeometryNode,
-    isWritable: boolean,
+    options: LoadArchesLayerOptions,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetchImplementation, session, node.nodeid),
+        await fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
+            signal: options.signal,
+        }),
     );
     const layerId = geolibreApp.addGeoJsonLayer(
-        `${node.resourcemodelname}: ${node.name}`,
+        archesLayerName(node, options.source),
         taggedCollection,
-        archesSourcePath(session, node.nodeid),
+        archesSourcePath(session, node.nodeid, options.source),
     );
+    const styleResult = geolibreApp.importLayerStyle?.(
+        layerId,
+        buildArchesLayerStyle(node.config),
+    );
+    if (styleResult && !styleResult.ok) {
+        console.warn(
+            `[arches-geolibre] GeoLibre did not apply the Arches style (${styleResult.reason}).`,
+            styleResult.warnings,
+        );
+    }
+    const bounds = featureBounds(taggedCollection.features);
+    if (bounds) {
+        geolibreApp.fitBounds?.(bounds);
+    }
     return {
         layerId,
         node,
-        isWritable,
+        source: options.source,
+        isWritable: options.isWritable,
         baselineFeatures: structuredClone(taggedCollection.features),
     };
 }
@@ -145,15 +190,75 @@ export async function reloadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
     fetchImplementation: typeof fetch,
     session: ArchesSession,
-    loadedLayer: LoadedArchesLayer,
+    loadedLayer: Pick<LoadedArchesLayer, "layerId" | "node" | "source"> &
+        Partial<Pick<LoadedArchesLayer, "isWritable">>,
 ): Promise<LoadedArchesLayer> {
     const reloadedLayer = await loadArchesLayer(
         geolibreApp,
         fetchImplementation,
         session,
         loadedLayer.node,
-        loadedLayer.isWritable,
+        {
+            source: loadedLayer.source,
+            isWritable: loadedLayer.isWritable ?? true,
+        },
     );
-    geolibreApp.unregisterExternalNativeLayer?.(loadedLayer.layerId);
+    removeLayer(geolibreApp, loadedLayer.layerId);
     return reloadedLayer;
+}
+
+/**
+ * The plugin API has no removeLayer. In GeoLibre 3.4.0
+ * unregisterExternalNativeLayer removes any layer by id; this is the only
+ * place the plugin relies on that.
+ */
+export function removeLayer(
+    geolibreApp: GeoLibreAppAPI,
+    layerId: string,
+): void {
+    geolibreApp.unregisterExternalNativeLayer?.(layerId);
+}
+
+export function featureBounds(
+    features: Feature<Geometry | null>[],
+): [number, number, number, number] | null {
+    let west = Infinity;
+    let south = Infinity;
+    let east = -Infinity;
+    let north = -Infinity;
+    for (const feature of features) {
+        for (const [longitude, latitude] of positionsOf(feature.geometry)) {
+            west = Math.min(west, longitude);
+            south = Math.min(south, latitude);
+            east = Math.max(east, longitude);
+            north = Math.max(north, latitude);
+        }
+    }
+    return Number.isFinite(west) ? [west, south, east, north] : null;
+}
+
+function* positionsOf(geometry: Geometry | null): Generator<Position> {
+    if (!geometry) {
+        return;
+    }
+    if (geometry.type === "GeometryCollection") {
+        for (const memberGeometry of geometry.geometries) {
+            yield* positionsOf(memberGeometry);
+        }
+        return;
+    }
+    yield* flattenPositions(geometry.coordinates);
+}
+
+function* flattenPositions(coordinates: unknown): Generator<Position> {
+    if (!Array.isArray(coordinates)) {
+        return;
+    }
+    if (typeof coordinates[0] === "number") {
+        yield coordinates as Position;
+        return;
+    }
+    for (const nestedCoordinates of coordinates) {
+        yield* flattenPositions(nestedCoordinates);
+    }
 }

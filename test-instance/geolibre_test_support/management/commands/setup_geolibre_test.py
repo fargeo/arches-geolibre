@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from oauth2_provider.models import Application
 
 from arches.app.models.graph import Graph
+from arches.app.models.models import Language, Node, SpatialView
 from arches.app.utils.betterJSONSerializer import JSONDeserializer
 from arches.app.utils.data_management.resource_graphs.importer import import_graph
 
@@ -12,6 +13,9 @@ from geolibre_test_support.constants import (
     EDITOR_USERNAME,
     GRAPH_FILE,
     GRAPH_ID,
+    LOCATION_NODE_ID,
+    NAME_NODE_ID,
+    SPATIAL_VIEW_SLUG,
     TEST_PASSWORD,
     VIEWER_USERNAME,
 )
@@ -30,6 +34,7 @@ class Command(BaseCommand):
             raise CommandError("Set OAUTH_CLIENT_ID in settings_local.py first.")
 
         self.import_test_model()
+        self.create_spatial_view()
         self.create_oauth_application()
         # Edits by anyone outside Resource Reviewer are saved as provisional.
         self.create_user(
@@ -56,6 +61,20 @@ class Command(BaseCommand):
         import_graph(graphs, overwrite_graphs=True)
         Graph.objects.get(pk=GRAPH_ID).publish(notes="arches-geolibre test setup")
         self.stdout.write("Imported and published the GeoLibre Test Asset model.")
+
+    def create_spatial_view(self):
+        SpatialView.objects.update_or_create(
+            slug=SPATIAL_VIEW_SLUG,
+            defaults={
+                "description": "GeoLibre Test Asset locations",
+                "geometrynode": Node.objects.get(pk=LOCATION_NODE_ID),
+                "ismixedgeometrytypes": True,
+                "language": Language.objects.get(code=settings.LANGUAGE_CODE),
+                "attributenodes": [{"nodeid": NAME_NODE_ID, "description": "name"}],
+                "isactive": True,
+            },
+        )
+        self.stdout.write(f"Spatial view {SPATIAL_VIEW_SLUG!r} is in place.")
 
     def create_oauth_application(self):
         Application.objects.update_or_create(

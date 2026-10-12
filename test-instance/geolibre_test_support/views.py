@@ -2,7 +2,7 @@
 A local stand-in for the planned Arches core fix to the /geojson endpoint.
 
 The body of ``get`` is core 8.1's ``arches.app.views.api.geo.GeoJSON.get``
-with three changes, each marked ``FIX``:
+with four changes:
 
 1. Resource-level permissions are checked per tile. Core reads ``tile``
    before it is bound, which raises UnboundLocalError on every request.
@@ -10,6 +10,8 @@ with three changes, each marked ``FIX``:
 3. Each feature reports its stored UUID as ``properties.featureid`` before
    ``id`` is replaced with a running number, and the primary name comes from
    the resource's stored name rather than a misdirected descriptor call.
+4. Tiles are fetched with their resource instance, so ``include_primary_name``
+   doesn't run one query per feature.
 """
 
 from django.urls import reverse
@@ -83,7 +85,7 @@ class FixedGeoJSON(GeoJSON):
                 property_node_map[str(node.nodeid)]["name"] = node.fieldname
         tiles = models.TileModel.objects.filter(
             nodegroup_id__in=[node.nodegroup_id for node in nodes]
-        )
+        ).select_related("resourceinstance")
         last_page = None
         if requested_resource_ids is not None:
             tiles = tiles.filter(resourceinstance_id__in=requested_resource_ids)

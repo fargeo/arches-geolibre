@@ -212,16 +212,14 @@ Verified in GeoLibre 3.4.0's web build with Playwright.
 
 Prerequisites:
 
-- An Arches 8.1 instance with the `/geojson` fix applied
-- `OAUTH_CLIENT_ID` set, plus a password-grant OAuth application
-- A user in the `Resource Editor` group
-- At least one resource model with a geometry node and some features
+- The Arches test instance running on port 8001 (see `docs/testing.md`);
+  sign in as `geolibre_editor`
 
-1. `npm run install:geolibre`, restart GeoLibre, then enable **Arches** in
-   Manage Plugins.
-2. The Arches panel docks to the right of Layers. Check the **Phase 0
-   diagnostics → Host** list: everything except `getProjectSnapshot` should
-   show ✓, and the credential store should say `keychain`.
+1. `VITE_ARCHES_GEOLIBRE_DIAGNOSTICS=true npm run install:geolibre`, restart
+   GeoLibre, then open **Plugins → Installed → Arches**.
+2. The Arches panel docks to the right of Layers. Check the **Diagnostics →
+   Host** list: everything except `getProjectSnapshot` should show ✓, and the
+   credential store should say `keychain`.
 3. Sign in. Restart GeoLibre, and the session should restore without a
    password.
 4. In the catalog, **Add** a geometry node. Select a feature and check

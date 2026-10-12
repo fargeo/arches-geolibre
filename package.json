@@ -14,12 +14,15 @@
         "prettier:check": "prettier . --check",
         "prettier:fix": "prettier . --write",
         "test:integration": "vitest --run --project integration",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "gettext:extract": "vue-gettext-extract",
+        "gettext:compile": "vue-gettext-compile"
     },
     "dependencies": {
         "@openvue/themes": "1.0.0",
         "openvue": "1.0.0",
-        "vue": "3.5.43"
+        "vue": "3.5.43",
+        "vue3-gettext": "4.0.1"
     },
     "devDependencies": {
         "@playwright/test": "1.64.0",

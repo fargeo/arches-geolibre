@@ -55,7 +55,9 @@ export default defineConfig({
                     environment: "node",
                     include: ["tests/integration/**/*.test.ts"],
                     fileParallelism: false,
+                    // Every /geojson request costs seconds on Arches 8.1.
                     testTimeout: 120_000,
+                    hookTimeout: 120_000,
                 },
             },
         ],

@@ -87,6 +87,18 @@ export interface GeoLibreAppAPI {
      * every GeoLibre upgrade.
      */
     unregisterExternalNativeLayer?: (id: string) => void;
+    importLayerStyle?: (
+        layerId: string,
+        text: string,
+    ) =>
+        | { ok: true; warnings: string[] }
+        | {
+              ok: false;
+              reason: "invalid" | "no-match" | "unsupported-layer";
+              warnings: string[];
+          };
+    openExternalUrl?: (url: string) => void;
+    onLocaleChange?: (listener: (locale: string) => void) => () => void;
     getViewBounds?: () => [number, number, number, number] | null;
     fitBounds?: (bounds: [number, number, number, number]) => void;
     nativeFetch?: typeof globalThis.fetch;

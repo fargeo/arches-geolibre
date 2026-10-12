@@ -3,6 +3,7 @@ import type { FeatureCollection, Geometry } from "geojson";
 import type {
     ArchesGeometryNode,
     ArchesSession,
+    ArchesSpatialView,
     NodeValueResponse,
 } from "@/arches_geolibre/types.ts";
 
@@ -120,26 +121,64 @@ export async function fetchGeometryNodes(
     return (await response.json()) as ArchesGeometryNode[];
 }
 
+/**
+ * Loads a geometry node's features in a single request. Paging /geojson
+ * doesn't help on 8.1: every page re-runs the whole permission filter, which
+ * dominates the cost.
+ */
 export async function fetchNodeFeatures(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     nodeId: string,
-    resourceInstanceIds: string[] = [],
+    options: { resourceInstanceIds?: string[]; signal?: AbortSignal } = {},
 ): Promise<FeatureCollection<Geometry>> {
     const query = new URLSearchParams({
         nodeid: nodeId,
         include_primary_name: "true",
     });
-    if (resourceInstanceIds.length > 0) {
-        query.set("resourceid", resourceInstanceIds.join(","));
+    if (options.resourceInstanceIds?.length) {
+        query.set("resourceid", options.resourceInstanceIds.join(","));
     }
     const response = await authorizedFetch(
         fetchImplementation,
         session,
         `/geojson?${query}`,
+        { signal: options.signal },
     );
     await assertOk(response, "Could not load features");
     return (await response.json()) as FeatureCollection<Geometry>;
+}
+
+export async function fetchSpatialViews(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+): Promise<ArchesSpatialView[]> {
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        "/api/spatialview/",
+    );
+    await assertOk(response, "Could not list spatial views");
+    const spatialViews = (await response.json()) as ArchesSpatialView[];
+    return spatialViews.filter((spatialView) => spatialView.isactive);
+}
+
+export async function fetchCanEditResource(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    resourceInstanceId: string,
+): Promise<boolean> {
+    const query = new URLSearchParams({
+        resourceinstanceid: resourceInstanceId,
+    });
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        `/api/instance_permissions/?${query}`,
+    );
+    await assertOk(response, "Could not read the resource's permissions");
+    const permissions = (await response.json()) as { edit: boolean };
+    return permissions.edit;
 }
 
 /**

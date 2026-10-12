@@ -43,17 +43,33 @@ instance, running each suite, and testing in GeoLibre Desktop.
 ```text
 geolibre-plugin/plugin.json    GeoLibre manifest; dist/ is the build output
 src/arches_geolibre/
-  plugin.ts                    GeoLibrePlugin entry: registers the panel
-  create-panel-app.ts          Vue + OpenVue bootstrap
+  plugin.ts                    GeoLibrePlugin entry: panel and project state
+  workspace.ts                 State shared by the panel and the plugin object
+  create-panel-app.ts          Vue + OpenVue + vue3-gettext bootstrap
+  i18n.ts, theme.ts            Translations (follow GeoLibre's language) and theme
   ArchesPanel.vue              Panel root
-  components/                  Panel sections
-  composables/                 GeoLibre host access, edit-session detection
+  components/                  Panel sections, one folder per section with sub-components
+  composables/                 GeoLibre host access, workspace, edit-session detection
   geolibre/host-api.ts         Vendored subset of GeoLibre's plugin types
-  utils/                       Arches client, feature keys, diffing, tile rebuilds
+  locale/                      Generated translation catalogs (npm run gettext:extract / gettext:compile)
+  utils/                       Arches client, catalog, layers, styles, diffing, tile rebuilds
 tests/integration/             Vitest suite run against a live Arches
 e2e/                           Playwright suite run in GeoLibre's web build
 test-instance/                 Script and Django app for a local Arches test instance
 ```
+
+## Translations
+
+UI strings use `$gettext` (vue3-gettext), as in Arches. After changing or
+adding strings, regenerate the catalogs:
+
+```shell
+npm run gettext:extract
+npm run gettext:compile
+```
+
+The plugin follows GeoLibre's language when a catalog exists for it, and
+falls back to English otherwise.
 
 ## License
 

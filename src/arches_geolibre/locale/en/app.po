@@ -1,0 +1,174 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:75
+msgid "Could not load the catalog: %{reason}"
+msgstr "Could not load the catalog: %{reason}"
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:125
+msgid "Could not load %{name}: %{reason}"
+msgstr "Could not load %{name}: %{reason}"
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:143
+msgid "Add Arches data"
+msgstr "Add Arches data"
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:144
+msgid "Loading the catalog…"
+msgstr "Loading the catalog…"
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:165
+msgid "You can't see any geometry in this Arches instance."
+msgstr "You can't see any geometry in this Arches instance."
+
+#: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:24
+msgid "Loading"
+msgstr "Loading"
+
+#: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:27
+msgid "Cancel"
+msgstr "Cancel"
+
+#: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:35
+msgid "Add"
+msgstr "Add"
+
+#: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:36
+msgid "Add %{label} to the map"
+msgstr "Add %{label} to the map"
+
+#: src/arches_geolibre/components/CatalogSection/components/SpatialViewList.vue:20
+msgid "Spatial views"
+msgstr "Spatial views"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SessionSummary.vue:21
+msgid "Signed in to %{instanceUrl} as %{username}"
+msgstr "Signed in to %{instanceUrl} as %{username}"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SessionSummary.vue:28
+msgid "Sign out"
+msgstr "Sign out"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SessionSummary.vue:40
+msgid "Your edits will be saved as provisional and appear on the map once a reviewer approves them."
+msgstr "Your edits will be saved as provisional and appear on the map once a reviewer approves them."
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:62
+msgid "The username or password is incorrect."
+msgstr "The username or password is incorrect."
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:64
+msgid "Could not reach Arches at %{url}: %{reason}"
+msgstr "Could not reach Arches at %{url}: %{reason}"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:79
+msgid "Arches URL, e.g. https://arches.example.org"
+msgstr "Arches URL, e.g. https://arches.example.org"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:81
+msgid "Arches URL"
+msgstr "Arches URL"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:87
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:88
+msgid "Username"
+msgstr "Username"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:94
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:95
+msgid "Password"
+msgstr "Password"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:103
+msgid "Sign in"
+msgstr "Sign in"
+
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:49
+msgid "Your saved Arches session has expired. Sign in again."
+msgstr "Your saved Arches session has expired. Sign in again."
+
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:75
+msgid "Arches connection"
+msgstr "Arches connection"
+
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:83
+msgid "Reconnecting…"
+msgstr "Reconnecting…"
+
+#: src/arches_geolibre/components/PendingChanges.vue:82
+msgid "Saved %{tileCount} tile(s); created %{resourceCount} resource(s)."
+msgstr "Saved %{tileCount} tile(s); created %{resourceCount} resource(s)."
+
+#: src/arches_geolibre/components/PendingChanges.vue:92
+msgid "%{count} edit(s) await review in Arches and won't show on the map until approved."
+msgstr "%{count} edit(s) await review in Arches and won't show on the map until approved."
+
+#: src/arches_geolibre/components/PendingChanges.vue:125
+msgid "Pending changes"
+msgstr "Pending changes"
+
+#: src/arches_geolibre/components/PendingChanges.vue:141
+msgid "Check"
+msgstr "Check"
+
+#: src/arches_geolibre/components/PendingChanges.vue:147
+msgid "Push to Arches"
+msgstr "Push to Arches"
+
+#: src/arches_geolibre/components/PendingChanges.vue:159
+msgid "%{edited} edited, %{created} new, %{deleted} deleted"
+msgstr "%{edited} edited, %{created} new, %{deleted} deleted"
+
+#: src/arches_geolibre/components/PendingChanges.vue:179
+msgid "Read only"
+msgstr "Read only"
+
+#: src/arches_geolibre/components/ProjectLayersSection.vue:59
+msgid "Could not reload %{name}: %{reason}"
+msgstr "Could not reload %{name}: %{reason}"
+
+#: src/arches_geolibre/components/ProjectLayersSection.vue:69
+msgid "Arches layers in this project"
+msgstr "Arches layers in this project"
+
+#: src/arches_geolibre/components/ProjectLayersSection.vue:73
+msgid "These layers show the data saved with the project. Reload them to see Arches' current data."
+msgstr "These layers show the data saved with the project. Reload them to see Arches' current data."
+
+#: src/arches_geolibre/components/ProjectLayersSection.vue:87
+msgid "Reload from Arches"
+msgstr "Reload from Arches"
+
+#: src/arches_geolibre/components/ProjectLayersSection.vue:95
+msgid "This project's Arches layers come from %{instanceUrl}. Sign in there to reload them."
+msgstr "This project's Arches layers come from %{instanceUrl}. Sign in there to reload them."
+
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:62
+msgid "Unnamed resource"
+msgstr "Unnamed resource"
+
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:67
+msgid "Edit in Arches"
+msgstr "Edit in Arches"
+
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:68
+msgid "View in Arches"
+msgstr "View in Arches"
+
+#: src/arches_geolibre/components/SelectionSection/SelectionSection.vue:54
+msgid "Selected resource"
+msgid_plural "%{count} selected resources"
+msgstr[0] "Selected resource"
+msgstr[1] "%{count} selected resources"
+
+#: src/arches_geolibre/components/SelectionSection/SelectionSection.vue:75
+msgid "Showing the first %{count}."
+msgstr "Showing the first %{count}."

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+    ARCHES_TEST_URL,
     EDITOR_USERNAME,
     addNodeToMap,
     archesPanel,
@@ -15,12 +16,27 @@ const EXTENT_LAYER_NAME = "GeoLibre Test Asset: Extent";
 test("loads, signs in and lists the test model's geometry nodes", async ({
     page,
 }) => {
+    const failedArchesRequests: string[] = [];
+    page.on("response", (response) => {
+        if (response.url().startsWith(ARCHES_TEST_URL) && !response.ok()) {
+            failedArchesRequests.push(`${response.status()} ${response.url()}`);
+        }
+    });
     await openArchesPanel(page);
     await signIn(page, EDITOR_USERNAME);
 
-    const nodeList = archesPanel(page).locator(".node-list");
-    await expect(nodeList).toContainText("GeoLibre Test Asset Location");
-    await expect(nodeList).toContainText("GeoLibre Test Asset Extent");
+    const panel = archesPanel(page);
+    const resourceModelGroup = panel
+        .locator(".resource-model-group")
+        .filter({ hasText: "GeoLibre Test Asset" });
+    await expect(resourceModelGroup).toContainText("Location");
+    await expect(resourceModelGroup).toContainText("Extent");
+    await expect(panel.locator(".spatial-view-list")).toContainText(
+        "geolibre_test_locations",
+    );
+    await expect(panel).not.toContainText("DEFAULT_BOUNDS");
+    // GeoLibre reports every failed request to the user as an error.
+    expect(failedArchesRequests).toEqual([]);
 });
 
 test("detects a GeoEditor session's new feature and pushes it to Arches", async ({
@@ -78,4 +94,27 @@ test("detects a GeoEditor session's new feature and pushes it to Arches", async 
         { timeout: 120_000 },
     );
     await expect(layerRow(page, EXTENT_LAYER_NAME)).toHaveCount(1);
+});
+
+test("shows a selected feature's resource with a link into Arches", async ({
+    page,
+}) => {
+    await openArchesPanel(page);
+    await signIn(page, EDITOR_USERNAME);
+    await addNodeToMap(page, "Extent");
+
+    await layerRow(page, EXTENT_LAYER_NAME).click();
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await page
+        .getByRole("menuitem", { name: "Select by Expression..." })
+        .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator("textarea").fill('["==", ["id"], 1]');
+    await dialog.getByRole("button", { name: "Select features" }).click();
+
+    const selectionSection = archesPanel(page).locator(".selection-section");
+    await expect(selectionSection).toContainText("Selected resource");
+    await expect(
+        selectionSection.getByRole("button", { name: "Edit in Arches" }),
+    ).toBeVisible();
 });

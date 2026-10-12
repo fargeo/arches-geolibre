@@ -70,19 +70,22 @@ export async function loadResourceLayer(
     resourceInstanceId: string,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetch, session, LOCATION_NODE.nodeid, [
-            resourceInstanceId,
-        ]),
+        await fetchNodeFeatures(fetch, session, LOCATION_NODE.nodeid, {
+            resourceInstanceIds: [resourceInstanceId],
+        }),
     );
     const layerId = crypto.randomUUID();
     fakeApp.setLayerFeatures(layerId, taggedCollection.features);
     return {
         layerId,
         node: LOCATION_NODE,
+        source: { kind: "node" },
         isWritable: true,
         baselineFeatures: structuredClone(taggedCollection.features),
     };
 }
+
+let generatedResourceId: Promise<string> | undefined;
 
 /**
  * A generated resource the test groups have object permissions on. Resources
@@ -90,7 +93,14 @@ export async function loadResourceLayer(
  * without an owner or permissions, so under the default-deny framework no
  * one but a superuser can see them.
  */
-export async function findGeneratedResourceId(
+export function findGeneratedResourceId(
+    session: ArchesSession,
+): Promise<string> {
+    generatedResourceId ??= fetchFirstLocationResourceId(session);
+    return generatedResourceId;
+}
+
+async function fetchFirstLocationResourceId(
     session: ArchesSession,
 ): Promise<string> {
     const query = new URLSearchParams({

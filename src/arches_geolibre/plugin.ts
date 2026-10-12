@@ -1,11 +1,17 @@
 import { PANEL_ID, PLUGIN_ID } from "@/arches_geolibre/constants.ts";
 import { createPanelApp } from "@/arches_geolibre/create-panel-app.ts";
+import {
+    applyProjectState,
+    createArchesWorkspace,
+    toProjectState,
+} from "@/arches_geolibre/workspace.ts";
 
 import type {
     GeoLibreAppAPI,
     GeoLibrePlugin,
 } from "@/arches_geolibre/geolibre/host-api.ts";
 
+const workspace = createArchesWorkspace();
 let unregisterPanel: (() => void) | null = null;
 
 export const plugin: GeoLibrePlugin = {
@@ -24,9 +30,15 @@ export const plugin: GeoLibrePlugin = {
             dock: "right-of-layers",
             deactivatePluginOnClose: true,
             render(container: HTMLElement): () => void {
-                const panelApp = createPanelApp(geolibreApp);
+                const { panelApp, stopFollowingLocale } = createPanelApp(
+                    geolibreApp,
+                    workspace,
+                );
                 panelApp.mount(container);
-                return () => panelApp.unmount();
+                return () => {
+                    stopFollowingLocale();
+                    panelApp.unmount();
+                };
             },
         });
         geolibreApp.openRightPanel?.(PANEL_ID);
@@ -36,6 +48,17 @@ export const plugin: GeoLibrePlugin = {
     deactivate(): void {
         unregisterPanel?.();
         unregisterPanel = null;
+    },
+
+    getProjectState(): unknown {
+        return toProjectState(workspace);
+    },
+
+    applyProjectState(
+        _geolibreApp: GeoLibreAppAPI,
+        projectState: unknown,
+    ): boolean {
+        return applyProjectState(workspace, projectState);
     },
 };
 

@@ -53,10 +53,12 @@ export async function addNodeToMap(
     page: Page,
     nodeName: string,
 ): Promise<void> {
-    const nodeRow = archesPanel(page)
-        .locator(".node-list li")
-        .filter({ hasText: `GeoLibre Test Asset ${nodeName}` });
-    await nodeRow.getByRole("button", { name: "Add" }).click();
+    const resourceModelGroup = archesPanel(page)
+        .locator(".resource-model-group")
+        .filter({ hasText: "GeoLibre Test Asset" });
+    await resourceModelGroup
+        .getByRole("button", { name: `Add ${nodeName} to the map` })
+        .click();
     await expect(
         layerRow(page, `GeoLibre Test Asset: ${nodeName}`),
     ).toBeVisible({

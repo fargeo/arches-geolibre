@@ -1,41 +1,31 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { useGettext } from "vue3-gettext";
+
 import Button from "openvue/button";
 import Message from "openvue/message";
 
+import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
 import { useEditSessionEnd } from "@/arches_geolibre/composables/use-edit-session-end.ts";
 import {
     useArchesFetch,
     useGeoLibreApp,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import {
+    archesLayerName,
     pushLayerChanges,
     reloadArchesLayer,
 } from "@/arches_geolibre/utils/arches-layers.ts";
 import { detectFeatureChanges } from "@/arches_geolibre/utils/change-detection.ts";
 
 import type { FeatureChange } from "@/arches_geolibre/utils/change-detection.ts";
-import type {
-    ArchesSession,
-    LoadedArchesLayer,
-} from "@/arches_geolibre/types.ts";
+import type { LoadedArchesLayer } from "@/arches_geolibre/types.ts";
 
-const props = defineProps<{
-    session: ArchesSession;
-    loadedLayers: LoadedArchesLayer[];
-}>();
-
-const emit = defineEmits<{
-    (
-        event: "layer-reloaded",
-        previousLayerId: string,
-        reloadedLayer: LoadedArchesLayer,
-    ): void;
-}>();
-
+const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
+const { $gettext } = useGettext();
 
 const changesByLayerId = ref(new Map<string, FeatureChange[]>());
 const pushingLayerId = ref<string | null>(null);
@@ -43,9 +33,9 @@ const statusMessage = ref("");
 const errorMessage = ref("");
 
 useEditSessionEnd(
-    () => props.loadedLayers.map((loadedLayer) => loadedLayer.layerId),
+    () => workspace.loadedLayers.map((loadedLayer) => loadedLayer.layerId),
     (layerId) => {
-        const loadedLayer = props.loadedLayers.find(
+        const loadedLayer = workspace.loadedLayers.find(
             (candidate) => candidate.layerId === layerId,
         );
         if (loadedLayer) {
@@ -63,32 +53,6 @@ function checkForChanges(loadedLayer: LoadedArchesLayer): void {
         detectFeatureChanges(loadedLayer.baselineFeatures, currentFeatures),
     );
     changesByLayerId.value = updatedChanges;
-    logSampleChange(loadedLayer, updatedChanges.get(loadedLayer.layerId) ?? []);
-}
-
-// Phase 0 diagnostic: shows what a GeoEditor session did to one feature.
-function logSampleChange(
-    loadedLayer: LoadedArchesLayer,
-    changes: FeatureChange[],
-): void {
-    const sampleChange = changes.find((change) => change.kind === "updated");
-    const baselineFeature = loadedLayer.baselineFeatures.find(
-        (feature) =>
-            feature.properties?.arches_feature_key === sampleChange?.featureKey,
-    );
-    console.info(
-        "[arches-geolibre] change sample",
-        JSON.stringify({
-            kinds: changes.reduce<Record<string, number>>((counts, change) => {
-                counts[change.kind] = (counts[change.kind] ?? 0) + 1;
-                return counts;
-            }, {}),
-            before: baselineFeature,
-            after: sampleChange?.feature,
-            created: changes.find((change) => change.kind === "created")
-                ?.feature,
-        }),
-    );
 }
 
 function countChanges(layerId: string, kind: FeatureChange["kind"]): number {
@@ -102,6 +66,9 @@ function hasChanges(layerId: string): boolean {
 }
 
 async function pushToArches(loadedLayer: LoadedArchesLayer): Promise<void> {
+    if (!workspace.session) {
+        return;
+    }
     pushingLayerId.value = loadedLayer.layerId;
     statusMessage.value = "";
     errorMessage.value = "";
@@ -109,16 +76,23 @@ async function pushToArches(loadedLayer: LoadedArchesLayer): Promise<void> {
         const pushResult = await pushLayerChanges(
             geolibreApp,
             archesFetch,
-            props.session,
+            workspace.session,
             loadedLayer,
         );
-        statusMessage.value =
-            `Saved ${pushResult.savedTileCount} tile(s); ` +
-            `created ${pushResult.createdResourceIds.length} resource(s).`;
+        statusMessage.value = $gettext(
+            "Saved %{tileCount} tile(s); created %{resourceCount} resource(s).",
+            {
+                tileCount: pushResult.savedTileCount,
+                resourceCount: pushResult.createdResourceIds.length,
+            },
+        );
         if (pushResult.provisionalTileCount > 0) {
             statusMessage.value +=
-                ` ${pushResult.provisionalTileCount} edit(s) await review ` +
-                "in Arches and won't show on the map until approved.";
+                " " +
+                $gettext(
+                    "%{count} edit(s) await review in Arches and won't show on the map until approved.",
+                    { count: pushResult.provisionalTileCount },
+                );
         }
         if (pushResult.failures.length > 0) {
             errorMessage.value = pushResult.failures.join("\n");
@@ -127,13 +101,17 @@ async function pushToArches(loadedLayer: LoadedArchesLayer): Promise<void> {
         const reloadedLayer = await reloadArchesLayer(
             geolibreApp,
             archesFetch,
-            props.session,
+            workspace.session,
             loadedLayer,
         );
         const updatedChanges = new Map(changesByLayerId.value);
         updatedChanges.delete(loadedLayer.layerId);
         changesByLayerId.value = updatedChanges;
-        emit("layer-reloaded", loadedLayer.layerId, reloadedLayer);
+        workspace.loadedLayers = workspace.loadedLayers.map((candidate) =>
+            candidate.layerId === loadedLayer.layerId
+                ? reloadedLayer
+                : candidate,
+        );
     } catch (error) {
         errorMessage.value = String(error);
     } finally {
@@ -143,27 +121,30 @@ async function pushToArches(loadedLayer: LoadedArchesLayer): Promise<void> {
 </script>
 
 <template>
-    <section>
-        <h3>Pending changes</h3>
-        <p v-if="loadedLayers.length === 0">
-            Add a geometry node to the map, edit it with the GeoEditor, then
-            save the edit session.
-        </p>
+    <section v-if="workspace.loadedLayers.length > 0">
+        <h3>{{ $gettext("Pending changes") }}</h3>
         <ul class="layer-list">
             <li
-                v-for="loadedLayer in loadedLayers"
+                v-for="loadedLayer in workspace.loadedLayers"
                 :key="loadedLayer.layerId"
             >
                 <div class="layer-heading">
-                    <strong>{{ loadedLayer.node.name }}</strong>
+                    <strong>
+                        {{
+                            archesLayerName(
+                                loadedLayer.node,
+                                loadedLayer.source,
+                            )
+                        }}
+                    </strong>
                     <Button
-                        label="Check"
+                        :label="$gettext('Check')"
                         size="small"
                         severity="secondary"
                         @click="checkForChanges(loadedLayer)"
                     />
                     <Button
-                        label="Push to Arches"
+                        :label="$gettext('Push to Arches')"
                         size="small"
                         :disabled="
                             !loadedLayer.isWritable ||
@@ -174,11 +155,29 @@ async function pushToArches(loadedLayer: LoadedArchesLayer): Promise<void> {
                     />
                 </div>
                 <span v-if="changesByLayerId.has(loadedLayer.layerId)">
-                    {{ countChanges(loadedLayer.layerId, "updated") }} edited,
-                    {{ countChanges(loadedLayer.layerId, "created") }} new,
-                    {{ countChanges(loadedLayer.layerId, "deleted") }} deleted
+                    {{
+                        $gettext(
+                            "%{edited} edited, %{created} new, %{deleted} deleted",
+                            {
+                                edited: countChanges(
+                                    loadedLayer.layerId,
+                                    "updated",
+                                ),
+                                created: countChanges(
+                                    loadedLayer.layerId,
+                                    "created",
+                                ),
+                                deleted: countChanges(
+                                    loadedLayer.layerId,
+                                    "deleted",
+                                ),
+                            },
+                        )
+                    }}
                 </span>
-                <span v-if="!loadedLayer.isWritable">Read only</span>
+                <span v-if="!loadedLayer.isWritable">
+                    {{ $gettext("Read only") }}
+                </span>
             </li>
         </ul>
         <Message

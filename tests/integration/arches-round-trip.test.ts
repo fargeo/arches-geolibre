@@ -1,6 +1,8 @@
 import {
+    fetchCanEditResource,
     fetchGeometryNodes,
     fetchNodeFeatures,
+    fetchSpatialViews,
     refreshSession,
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { pushLayerChanges } from "@/arches_geolibre/utils/arches-layers.ts";
@@ -65,6 +67,31 @@ describe("signing in", () => {
 });
 
 describe("catalog and loading", () => {
+    it("lists the test spatial view", async () => {
+        const spatialViews = await fetchSpatialViews(fetch, editorSession);
+        expect(spatialViews.map((spatialView) => spatialView.slug)).toContain(
+            "geolibre_test_locations",
+        );
+    });
+
+    it("tells editors and viewers apart for a resource", async () => {
+        const resourceInstanceId = await findGeneratedResourceId(editorSession);
+        expect(
+            await fetchCanEditResource(
+                fetch,
+                editorSession,
+                resourceInstanceId,
+            ),
+        ).toBe(true);
+        expect(
+            await fetchCanEditResource(
+                fetch,
+                viewerSession,
+                resourceInstanceId,
+            ),
+        ).toBe(false);
+    });
+
     it("lists the test model's geometry nodes", async () => {
         const nodes = await fetchGeometryNodes(
             fetch,
@@ -112,6 +139,7 @@ describe("creating a resource", () => {
             {
                 layerId,
                 node: LOCATION_NODE,
+                source: { kind: "node" },
                 isWritable: true,
                 baselineFeatures: [],
             },
@@ -132,7 +160,7 @@ describe("creating a resource", () => {
                 fetch,
                 editorSession,
                 LOCATION_NODE.nodeid,
-                [createdResourceId],
+                { resourceInstanceIds: [createdResourceId] },
             );
             expect(featureCollection.features).toHaveLength(1);
         },

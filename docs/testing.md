@@ -93,6 +93,10 @@ harmless: re-create the instance whenever you want a clean slate.
       signed-in session.
     - Or build the test project's frontend and open the resource in Arches.
 
+To see the developer diagnostics section in the panel (host API probes,
+map-tool events, raw properties of selected features), build with
+`VITE_ARCHES_GEOLIBRE_DIAGNOSTICS=true npm run install:geolibre`.
+
 After changing plugin code, repeat step 2 and restart GeoLibre. For a faster
 loop, open **Manage Plugins → Settings → development directories** and add
 this repo's `geolibre-plugin/` folder. Then `npm run watch` rebuilds on

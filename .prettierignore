@@ -4,3 +4,4 @@ package-lock.json
 .geolibre/
 test-results/
 playwright-report/
+src/arches_geolibre/locale/

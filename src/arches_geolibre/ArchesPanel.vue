@@ -1,57 +1,29 @@
 <script setup lang="ts">
-import { ref } from "vue";
-
-import ConnectionForm from "@/arches_geolibre/components/ConnectionForm.vue";
-import NodeCatalog from "@/arches_geolibre/components/NodeCatalog.vue";
+import CatalogSection from "@/arches_geolibre/components/CatalogSection/CatalogSection.vue";
+import ConnectionSection from "@/arches_geolibre/components/ConnectionSection/ConnectionSection.vue";
+import DiagnosticsSection from "@/arches_geolibre/components/DiagnosticsSection/DiagnosticsSection.vue";
 import PendingChanges from "@/arches_geolibre/components/PendingChanges.vue";
-import SpikeDiagnostics from "@/arches_geolibre/components/SpikeDiagnostics/SpikeDiagnostics.vue";
+import ProjectLayersSection from "@/arches_geolibre/components/ProjectLayersSection.vue";
+import SelectionSection from "@/arches_geolibre/components/SelectionSection/SelectionSection.vue";
 
-import type {
-    ArchesSession,
-    LoadedArchesLayer,
-} from "@/arches_geolibre/types.ts";
+import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
 
-const session = ref<ArchesSession | null>(null);
-const loadedLayers = ref<LoadedArchesLayer[]>([]);
+const SHOW_DIAGNOSTICS =
+    import.meta.env.VITE_ARCHES_GEOLIBRE_DIAGNOSTICS === "true";
 
-function addLoadedLayer(loadedLayer: LoadedArchesLayer): void {
-    loadedLayers.value = [...loadedLayers.value, loadedLayer];
-}
-
-function replaceLoadedLayer(
-    previousLayerId: string,
-    reloadedLayer: LoadedArchesLayer,
-): void {
-    loadedLayers.value = loadedLayers.value.map((loadedLayer) =>
-        loadedLayer.layerId === previousLayerId ? reloadedLayer : loadedLayer,
-    );
-}
-
-function signOut(): void {
-    session.value = null;
-    loadedLayers.value = [];
-}
+const workspace = useArchesWorkspace();
 </script>
 
 <template>
     <div class="arches-panel">
-        <ConnectionForm
-            :session="session"
-            @signed-in="session = $event"
-            @signed-out="signOut"
-        />
-        <template v-if="session">
-            <NodeCatalog
-                :session="session"
-                @layer-loaded="addLoadedLayer"
-            />
-            <PendingChanges
-                :session="session"
-                :loaded-layers="loadedLayers"
-                @layer-reloaded="replaceLoadedLayer"
-            />
+        <ConnectionSection />
+        <ProjectLayersSection v-if="workspace.savedLayers.length > 0" />
+        <template v-if="workspace.session">
+            <SelectionSection />
+            <CatalogSection />
+            <PendingChanges />
         </template>
-        <SpikeDiagnostics />
+        <DiagnosticsSection v-if="SHOW_DIAGNOSTICS" />
     </div>
 </template>
 
@@ -59,7 +31,7 @@ function signOut(): void {
 .arches-panel {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
     padding: 0.75rem;
     font-size: 0.875rem;
 }
