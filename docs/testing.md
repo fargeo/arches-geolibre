@@ -1,0 +1,103 @@
+# Testing arches-geolibre
+
+There are three automated layers plus a manual pass in GeoLibre Desktop. Each
+covers something the others can't.
+
+| Layer         | Command                    | Needs                                    | Covers                                                                                                                   |
+| ------------- | -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Unit          | `npm test`                 | nothing                                  | diffing, feature keys, tile rebuilds                                                                                     |
+| Integration   | `npm run test:integration` | test Arches on :8001                     | sign-in and refresh, catalog, loading, every push path, permissions, against real Arches                                 |
+| Browser (e2e) | `npm run test:e2e`         | test Arches on :8001, GeoLibre web build | plugin loading, panel UI, sign-in through the UI, adding a layer, a real GeoEditor session, edit-session detection, push |
+| Manual        | see below                  | GeoLibre Desktop                         | `nativeFetch`, the OS keychain, theme fit, edits too fiddly to script (vertex drags, split, merge)                       |
+
+The browser suite runs GeoLibre's **web** build. In the web build there is no
+`nativeFetch`, so requests to Arches are cross-origin and rely on the test
+instance's CORS settings. Credentials go to `localStorage` rather than the
+keychain. Those differences are why the desktop pass stays manual.
+
+## One-time setup
+
+1. Create the Arches test instance (see `test-instance/README.md`):
+
+    ```shell
+    test-instance/create-test-instance.sh ~/Projects/arches4/dev_env ~/Projects/arches4
+    ```
+
+2. For the browser suite, build GeoLibre's web app with the plugin bundled
+   in. This clones GeoLibre into `.geolibre/` (git-ignored) and takes a few
+   minutes the first time:
+
+    ```shell
+    scripts/prepare-geolibre-web.sh          # GEOLIBRE_REF=v3.3.0 to test an older release
+    npx playwright install chromium
+    ```
+
+    Re-run the script after changing the plugin, so the bundled copy is
+    current.
+
+## Running the suites
+
+Start the test instance in one terminal:
+
+```shell
+cd ~/Projects/arches4/arches_geolibre_test
+~/Projects/arches4/dev_env/bin/python manage.py runserver 8001
+```
+
+Then run:
+
+```shell
+npm test                  # unit
+npm run test:integration  # needs :8001
+npm run test:e2e          # needs :8001; starts GeoLibre's preview server on :4173 itself
+```
+
+`ARCHES_TEST_URL` points the integration and browser suites at a different
+Arches. `GEOLIBRE_DIR` and `GEOLIBRE_PORT` relocate the GeoLibre build.
+
+The integration and browser suites create resources on every run. That's
+harmless: re-create the instance whenever you want a clean slate.
+
+## Testing in GeoLibre Desktop
+
+1. Start the test instance on port 8001 (above).
+2. Build the plugin and install it into GeoLibre Desktop's plugin folder:
+
+    ```shell
+    npm run install:geolibre
+    ```
+
+    This copies `geolibre-plugin/` to
+    `~/Library/Application Support/org.geolibre.desktop/plugins/arches-geolibre/`.
+
+3. Quit GeoLibre Desktop completely (⌘Q) and reopen it. Plugins are only
+   scanned at startup.
+4. Open **Plugins → Installed → Arches**. The Arches panel docks beside
+   Layers.
+5. Sign in:
+    - **Arches URL:** `http://localhost:8001`
+    - **Username:** `geolibre_editor` (`geolibre_contributor` to see
+      provisional edits, `geolibre_viewer` for read only)
+    - **Password:** `geolibre-test-password`
+6. Work through the checklist in `docs/phase-0-spikes.md`, recording results
+   there.
+    - **Location** has about 55,000 features, so expect it to load slowly.
+      That is a known 8.1 limitation.
+    - **Extent** (about 10,000) is quicker for editing tests.
+    - To edit, open the Arches layer's **⋯ Layer actions → Edit geometry**.
+      Draw or change features with the GeoEditor toolbar, then **⋯ → Finish
+      editing geometry** to save the session.
+7. Check edits in Arches:
+    - Reload the layer from the catalog.
+    - Or use `/geojson?nodeid=<node id>&resourceid=<resource id>` with a
+      signed-in session.
+    - Or build the test project's frontend and open the resource in Arches.
+
+After changing plugin code, repeat step 2 and restart GeoLibre. For a faster
+loop, open **Manage Plugins → Settings → development directories** and add
+this repo's `geolibre-plugin/` folder. Then `npm run watch` rebuilds on
+save, and a GeoLibre restart picks the change up without reinstalling.
+
+To check the session survives a restart, quit and reopen GeoLibre after
+signing in. The panel should come back signed in, with its tokens read from
+the macOS keychain.

@@ -1,0 +1,10 @@
+import type { InjectionKey } from "vue";
+
+import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+
+export const PLUGIN_ID = "arches-geolibre";
+export const PANEL_ID = `${PLUGIN_ID}-panel`;
+export const CREDENTIAL_SESSION_NAME = "session";
+
+export const GEOLIBRE_APP_KEY: InjectionKey<GeoLibreAppAPI> =
+    Symbol("geolibreApp");

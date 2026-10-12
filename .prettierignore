@@ -1,0 +1,6 @@
+geolibre-plugin/dist/
+coverage/
+package-lock.json
+.geolibre/
+test-results/
+playwright-report/

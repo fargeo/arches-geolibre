@@ -1,0 +1,308 @@
+{
+    "graph": [
+        {
+            "author": " ",
+            "cards": [
+                {
+                    "active": true,
+                    "cardid": "b11fc284-9dc0-505e-b36c-9dd6cd5e129e",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": "",
+                    "description": "Represents a node and node type pairing",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "helpenabled": false,
+                    "helptext": null,
+                    "helptitle": null,
+                    "instructions": "",
+                    "is_editable": true,
+                    "name": "Name",
+                    "nodegroup_id": "91128af1-1266-5b18-87a5-92914e952769",
+                    "sortorder": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
+                    "cardid": "0fc52627-4f3c-5597-aa1d-ca6f6cd7e5f9",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": "",
+                    "description": "Represents a node and node type pairing",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "helpenabled": false,
+                    "helptext": null,
+                    "helptitle": null,
+                    "instructions": "",
+                    "is_editable": true,
+                    "name": "Location",
+                    "nodegroup_id": "c776e991-01ed-5781-b01e-5ee7950c23ff",
+                    "sortorder": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
+                    "cardid": "39a0cd3a-f6be-5664-b629-081e143477af",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": "",
+                    "description": "Represents a node and node type pairing",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "helpenabled": false,
+                    "helptext": null,
+                    "helptitle": null,
+                    "instructions": "",
+                    "is_editable": true,
+                    "name": "Extent",
+                    "nodegroup_id": "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
+                    "sortorder": null,
+                    "visible": true
+                }
+            ],
+            "cards_x_nodes_x_widgets": [],
+            "color": null,
+            "config": {},
+            "deploymentdate": null,
+            "deploymentfile": null,
+            "description": "Resource model for testing the arches-geolibre plugin",
+            "edges": [
+                {
+                    "description": null,
+                    "domainnode_id": "858e5bf8-81b1-5dfe-92e2-461b2032c1d0",
+                    "edgeid": "26b7ba66-55be-5799-b8d4-97909eaa81b9",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "name": null,
+                    "ontologyproperty": null,
+                    "rangenode_id": "c776e991-01ed-5781-b01e-5ee7950c23ff"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "858e5bf8-81b1-5dfe-92e2-461b2032c1d0",
+                    "edgeid": "05de6eda-d8ba-5903-b9eb-d642ff4135ce",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "name": null,
+                    "ontologyproperty": null,
+                    "rangenode_id": "91128af1-1266-5b18-87a5-92914e952769"
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "858e5bf8-81b1-5dfe-92e2-461b2032c1d0",
+                    "edgeid": "b32b007f-0d2b-5694-b09b-9e320d388b9a",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "name": null,
+                    "ontologyproperty": null,
+                    "rangenode_id": "893fe3f2-56ef-5dc6-90ec-5487aa9423c8"
+                }
+            ],
+            "functions_x_graphs": [
+                {
+                    "config": {
+                        "descriptor_types": {
+                            "name": {
+                                "nodegroup_id": "91128af1-1266-5b18-87a5-92914e952769",
+                                "string_template": "<Name>"
+                            },
+                            "description": {
+                                "nodegroup_id": "91128af1-1266-5b18-87a5-92914e952769",
+                                "string_template": "<Name>"
+                            },
+                            "map_popup": {
+                                "nodegroup_id": "91128af1-1266-5b18-87a5-92914e952769",
+                                "string_template": "<Name>"
+                            }
+                        },
+                        "triggering_nodegroups": []
+                    },
+                    "function_id": "60000000-0000-0000-0000-000000000001",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "id": "3627483c-15d7-5278-9891-36f9b10bdf4c"
+                }
+            ],
+            "graphid": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+            "iconclass": "fa fa-adjust",
+            "is_editable": true,
+            "isresource": true,
+            "jsonldcontext": null,
+            "name": "GeoLibre Test Asset",
+            "nodegroups": [
+                {
+                    "cardinality": "1",
+                    "legacygroupid": null,
+                    "nodegroupid": "91128af1-1266-5b18-87a5-92914e952769",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "n",
+                    "legacygroupid": null,
+                    "nodegroupid": "c776e991-01ed-5781-b01e-5ee7950c23ff",
+                    "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "n",
+                    "legacygroupid": null,
+                    "nodegroupid": "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
+                    "parentnodegroup_id": null
+                }
+            ],
+            "nodes": [
+                {
+                    "config": null,
+                    "datatype": "string",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Name",
+                    "nodegroup_id": "91128af1-1266-5b18-87a5-92914e952769",
+                    "nodeid": "91128af1-1266-5b18-87a5-92914e952769",
+                    "ontologyclass": null,
+                    "parentproperty": null,
+                    "sortorder": 0
+                },
+                {
+                    "config": null,
+                    "datatype": "semantic",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "is_collector": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": true,
+                    "name": "GeoLibre Test Asset",
+                    "nodegroup_id": null,
+                    "nodeid": "858e5bf8-81b1-5dfe-92e2-461b2032c1d0",
+                    "ontologyclass": null,
+                    "parentproperty": "",
+                    "sortorder": 0
+                },
+                {
+                    "config": {
+                        "addToMap": false,
+                        "advancedStyle": "",
+                        "advancedStyling": false,
+                        "clusterDistance": 20,
+                        "clusterMaxZoom": 5,
+                        "clusterMinPoints": 3,
+                        "fillColor": "rgba(130, 130, 130, 0.5)",
+                        "haloRadius": 4,
+                        "haloWeight": 4,
+                        "layerActivated": true,
+                        "layerIcon": "",
+                        "layerLegend": "",
+                        "layerName": "",
+                        "lineColor": "rgba(130, 130, 130, 0.7)",
+                        "lineHaloColor": "rgba(200, 200, 200, 0.5)",
+                        "outlineColor": "rgba(200, 200, 200, 0.7)",
+                        "outlineWeight": 2,
+                        "pointColor": "rgba(130, 130, 130, 0.7)",
+                        "pointHaloColor": "rgba(200, 200, 200, 0.5)",
+                        "radius": 2,
+                        "simplification": 0.3,
+                        "weight": 2
+                    },
+                    "datatype": "geojson-feature-collection",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Location",
+                    "nodegroup_id": "c776e991-01ed-5781-b01e-5ee7950c23ff",
+                    "nodeid": "c776e991-01ed-5781-b01e-5ee7950c23ff",
+                    "ontologyclass": null,
+                    "parentproperty": null,
+                    "sortorder": 0
+                },
+                {
+                    "config": {
+                        "addToMap": false,
+                        "advancedStyle": "",
+                        "advancedStyling": false,
+                        "clusterDistance": 20,
+                        "clusterMaxZoom": 5,
+                        "clusterMinPoints": 3,
+                        "fillColor": "rgba(130, 130, 130, 0.5)",
+                        "haloRadius": 4,
+                        "haloWeight": 4,
+                        "layerActivated": true,
+                        "layerIcon": "",
+                        "layerLegend": "",
+                        "layerName": "",
+                        "lineColor": "rgba(130, 130, 130, 0.7)",
+                        "lineHaloColor": "rgba(200, 200, 200, 0.5)",
+                        "outlineColor": "rgba(200, 200, 200, 0.7)",
+                        "outlineWeight": 2,
+                        "pointColor": "rgba(130, 130, 130, 0.7)",
+                        "pointHaloColor": "rgba(200, 200, 200, 0.5)",
+                        "radius": 2,
+                        "simplification": 0.3,
+                        "weight": 2
+                    },
+                    "datatype": "geojson-feature-collection",
+                    "description": "",
+                    "exportable": false,
+                    "fieldname": "",
+                    "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                    "is_collector": true,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Extent",
+                    "nodegroup_id": "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
+                    "nodeid": "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
+                    "ontologyclass": null,
+                    "parentproperty": null,
+                    "sortorder": 0
+                }
+            ],
+            "ontology_id": null,
+            "publication": {
+                "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                "notes": "Initial migration.",
+                "publicationid": "80b624dc-944e-531a-b4e0-406cd95df0da",
+                "published_time": "2022-03-22T13:29:06.593",
+                "user_id": null
+            },
+            "relatable_resource_model_ids": [],
+            "resource_2_resource_constraints": [],
+            "root": {
+                "config": null,
+                "datatype": "semantic",
+                "description": "",
+                "exportable": false,
+                "fieldname": "",
+                "graph_id": "45f4ab91-54cf-5e17-ba25-c12873c73385",
+                "is_collector": false,
+                "isrequired": false,
+                "issearchable": true,
+                "istopnode": true,
+                "name": "Search Test Model Root",
+                "nodegroup_id": null,
+                "nodeid": "858e5bf8-81b1-5dfe-92e2-461b2032c1d0",
+                "ontologyclass": null,
+                "sortorder": 0
+            },
+            "slug": "geolibre_test_asset",
+            "subtitle": "",
+            "template_id": "50000000-0000-0000-0000-000000000001",
+            "version": ""
+        }
+    ],
+    "metadata": {
+        "db": "PostgreSQL 12.1 on x86_64-apple-darwin16.7.0, compiled by Apple LLVM version 8.1.0 (clang-802.0.42), 64-bit",
+        "git hash": "510395823 2020-10-23 12:24:23 +0000",
+        "os": "Darwin",
+        "os version": "19.6.0"
+    }
+}

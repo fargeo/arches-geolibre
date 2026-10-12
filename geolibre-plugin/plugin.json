@@ -1,0 +1,9 @@
+{
+    "id": "arches-geolibre",
+    "name": "Arches",
+    "version": "0.0.1",
+    "description": "Load, edit and create Arches resource geometries in GeoLibre.",
+    "entry": "dist/index.js",
+    "style": "dist/style.css",
+    "engines": ["maplibre"]
+}

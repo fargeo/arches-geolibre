@@ -1,0 +1,8 @@
+node_modules/
+geolibre-plugin/dist/
+coverage/
+*.log
+.DS_Store
+.geolibre/
+test-results/
+playwright-report/
