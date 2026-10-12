@@ -14,7 +14,10 @@ import {
     useArchesFetch,
     useGeoLibreApp,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
-import { fetchCanEditResource } from "@/arches_geolibre/utils/arches-client.ts";
+import {
+    TooManyResourcesError,
+    fetchCanEditResource,
+} from "@/arches_geolibre/utils/arches-client.ts";
 import {
     archesLayerName,
     pushLayerChanges,
@@ -30,6 +33,7 @@ import {
     reconcilePendingChanges,
 } from "@/arches_geolibre/utils/push-plan.ts";
 
+import type { LoadedArchesLayer } from "@/arches_geolibre/types.ts";
 import type { PushResult } from "@/arches_geolibre/utils/arches-layers.ts";
 import type {
     ChangeTarget,
@@ -48,6 +52,7 @@ const editableResourceIds = ref(new Map<string, boolean>());
 const hasChecked = ref(false);
 const isChecking = ref(false);
 const isPushing = ref(false);
+const isLoadingView = ref(false);
 const statusMessage = ref("");
 const errorMessage = ref("");
 
@@ -183,20 +188,62 @@ async function pushToArches(): Promise<void> {
         errorMessage.value = pushResult.failures.join("\n");
         trackProvisionalTiles(pushResult);
 
-        const reloadedLayer = await reloadArchesLayer(
-            geolibreApp,
-            archesFetch,
-            session,
-            loadedLayer.value,
-        );
-        workspace.loadedLayers = workspace.loadedLayers.map((candidate) =>
-            candidate.layerId === props.layerId ? reloadedLayer : candidate,
+        replaceLayer(
+            await reloadArchesLayer(
+                geolibreApp,
+                archesFetch,
+                session,
+                loadedLayer.value,
+                { afterPush: true },
+            ),
         );
     } catch (error) {
         errorMessage.value = String(error);
     } finally {
         isPushing.value = false;
     }
+}
+
+async function loadCurrentView(): Promise<void> {
+    const session = workspace.session;
+    if (!loadedLayer.value || !session) {
+        return;
+    }
+    isLoadingView.value = true;
+    statusMessage.value = "";
+    errorMessage.value = "";
+    try {
+        replaceLayer(
+            await reloadArchesLayer(
+                geolibreApp,
+                archesFetch,
+                session,
+                loadedLayer.value,
+                { bounds: geolibreApp.getViewBounds?.() ?? null },
+            ),
+        );
+        pendingChanges.value = [];
+        hasChecked.value = false;
+    } catch (error) {
+        errorMessage.value =
+            error instanceof TooManyResourcesError
+                ? $gettext(
+                      "%{total} resources are in view, more than the %{maximum} that can be loaded at once. Zoom in and try again.",
+                      {
+                          total: error.totalResources,
+                          maximum: error.maximumResources,
+                      },
+                  )
+                : String(error);
+    } finally {
+        isLoadingView.value = false;
+    }
+}
+
+function replaceLayer(reloadedLayer: LoadedArchesLayer): void {
+    workspace.loadedLayers = workspace.loadedLayers.map((candidate) =>
+        candidate.layerId === props.layerId ? reloadedLayer : candidate,
+    );
 }
 
 function trackProvisionalTiles(pushResult: PushResult): void {
@@ -264,10 +311,23 @@ function countOf(kind: PendingChange["change"]["kind"]): number {
         v-if="loadedLayer"
         class="layer-changes"
     >
-        <div class="layer-heading">
-            <strong>{{
-                archesLayerName(loadedLayer.node, loadedLayer.source)
-            }}</strong>
+        <strong>{{
+            archesLayerName(loadedLayer.node, loadedLayer.source)
+        }}</strong>
+        <div class="layer-actions">
+            <Button
+                :label="$gettext('Load this view')"
+                :title="
+                    $gettext(
+                        'Replace this layer with the resources in the current map view',
+                    )
+                "
+                size="small"
+                severity="secondary"
+                :disabled="pendingChanges.length > 0"
+                :loading="isLoadingView"
+                @click="loadCurrentView"
+            />
             <Button
                 :label="$gettext('Check')"
                 size="small"
@@ -334,14 +394,10 @@ function countOf(kind: PendingChange["change"]["kind"]): number {
     gap: 0.5rem;
 }
 
-.layer-heading {
+.layer-actions {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
-}
-
-.layer-heading strong {
-    flex: 1;
 }
 
 .change-list {

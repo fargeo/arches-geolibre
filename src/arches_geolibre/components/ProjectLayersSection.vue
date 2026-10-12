@@ -33,6 +33,12 @@ const isSignedInToProjectInstance = computed(
 async function reloadAll(): Promise<void> {
     isReloading.value = true;
     errorMessage.value = "";
+    const savedArea = workspace.savedLayers.find(
+        (savedLayer) => savedLayer.bounds,
+    )?.bounds;
+    if (savedArea) {
+        geolibreApp.fitBounds?.(savedArea);
+    }
     for (const savedLayer of [...workspace.savedLayers]) {
         await reload(savedLayer);
     }

@@ -33,6 +33,7 @@ describe("project state", () => {
             layerId: "layer-1",
             node: LOCATION_NODE,
             source: { kind: "node" },
+            bounds: [-0.2, 51.4, 0.1, 51.6],
             isWritable: true,
             baselineFeatures: [],
         });
@@ -48,6 +49,7 @@ describe("project state", () => {
                 layerId: "layer-1",
                 node: LOCATION_NODE,
                 source: { kind: "node" },
+                bounds: [-0.2, 51.4, 0.1, 51.6],
             },
         ]);
     });

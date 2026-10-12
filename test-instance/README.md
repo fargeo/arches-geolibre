@@ -81,3 +81,6 @@ cd ~/Projects/arches4/arches_geolibre_test
 Port 8001 keeps it clear of other projects on 8000. The API is all the plugin
 needs. To browse resources in Arches' own UI, build its frontend once with
 `npm run build_development`.
+
+To behave like a released Arches 8.1, without the stand-ins, start it with
+`GEOLIBRE_TEST_STOCK_ARCHES=true` in the environment.

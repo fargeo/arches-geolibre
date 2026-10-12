@@ -55,6 +55,23 @@ npm run test:e2e          # needs :8001; starts GeoLibre's preview server on :41
 `ARCHES_TEST_URL` points the integration and browser suites at a different
 Arches. `GEOLIBRE_DIR` and `GEOLIBRE_PORT` relocate the GeoLibre build.
 
+### Testing against stock Arches 8.1
+
+The test instance normally adds stand-ins for two planned Arches core fixes.
+To make it behave like a released 8.1 instead, start it with the stand-ins
+switched off, and tell the suites:
+
+```shell
+GEOLIBRE_TEST_STOCK_ARCHES=true ~/Projects/arches4/dev_env/bin/python manage.py runserver 8001
+GEOLIBRE_TEST_STOCK_ARCHES=true npm run test:integration
+GEOLIBRE_TEST_STOCK_ARCHES=true npm run test:e2e
+```
+
+Both modes should pass. In stock mode, deleting a resource's last geometry
+clears it instead of deleting the tile, and the tests expect that.
+Colleagues testing on their own instances should follow
+[testing-on-your-arches.md](testing-on-your-arches.md).
+
 The integration and browser suites create resources on every run. That's
 harmless: re-create the instance whenever you want a clean slate.
 
@@ -81,9 +98,9 @@ harmless: re-create the instance whenever you want a clean slate.
     - **Password:** `geolibre-test-password`
 6. Work through the checklist in `docs/phase-0-spikes.md`, recording results
    there.
-    - **Location** has about 55,000 features, so expect it to load slowly.
-      That is a known 8.1 limitation.
-    - **Extent** (about 10,000) is quicker for editing tests.
+    - **Layers load what's in view**, up to 500 resources. The test data is
+      around Greater London: zoom in to part of London (zoom 14 or closer)
+      before choosing **Add**.
     - To edit, open the Arches layer's **⋯ Layer actions → Edit geometry**.
       Draw or change features with the GeoEditor toolbar, then **⋯ → Finish
       editing geometry** to save the session.

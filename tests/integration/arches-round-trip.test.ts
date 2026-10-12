@@ -1,9 +1,10 @@
 import {
     fetchCanEditResource,
+    TooManyResourcesError,
     fetchGeometryNodes,
-    fetchNodeFeatures,
     fetchSpatialViews,
     refreshSession,
+    searchNodeFeatures,
     searchResources,
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { fetchOwnPendingFeatures } from "@/arches_geolibre/utils/pending-review.ts";
@@ -14,6 +15,8 @@ import {
     EXTENT_NODE,
     FakeGeoLibreApp,
     LOCATION_NODE,
+    STOCK_ARCHES,
+    TEST_AREA,
     VIEWER_USERNAME,
     findGeneratedResourceId,
     findResourceWithoutExtent,
@@ -107,16 +110,17 @@ describe("catalog and loading", () => {
         );
     });
 
-    it("loads a whole geometry node, reporting featureid", async () => {
+    it("loads the features in an area through search, as /geojson would shape them", async () => {
         const startedAt = performance.now();
-        const featureCollection = await fetchNodeFeatures(
+        const featureCollection = await searchNodeFeatures(
             fetch,
             editorSession,
-            LOCATION_NODE.nodeid,
+            LOCATION_NODE,
+            { bounds: TEST_AREA },
         );
         const elapsedSeconds = (performance.now() - startedAt) / 1000;
         console.info(
-            `Loaded ${featureCollection.features.length} Location features in ${elapsedSeconds.toFixed(1)} s`,
+            `Loaded ${featureCollection.features.length} Location features in the test area in ${elapsedSeconds.toFixed(1)} s`,
         );
 
         expect(featureCollection.features.length).toBeGreaterThan(0);
@@ -124,7 +128,18 @@ describe("catalog and loading", () => {
             tileid: expect.any(String),
             featureid: expect.any(String),
             resourceinstanceid: expect.any(String),
+            nodeid: LOCATION_NODE.nodeid,
+            primary_name: expect.any(String),
         });
+    });
+
+    it("refuses to load more resources than the limit", async () => {
+        await expect(
+            searchNodeFeatures(fetch, editorSession, LOCATION_NODE, {
+                bounds: null,
+                maximumResources: 100,
+            }),
+        ).rejects.toBeInstanceOf(TooManyResourcesError);
     });
 });
 
@@ -140,6 +155,7 @@ describe("creating a resource", () => {
             layerId,
             node: LOCATION_NODE,
             source: { kind: "node" },
+            bounds: null,
             isWritable: true,
             baselineFeatures: [],
         });
@@ -155,10 +171,10 @@ describe("creating a resource", () => {
     it.fails(
         "lets the creator read back the resource they created",
         async () => {
-            const featureCollection = await fetchNodeFeatures(
+            const featureCollection = await searchNodeFeatures(
                 fetch,
                 editorSession,
-                LOCATION_NODE.nodeid,
+                LOCATION_NODE,
                 { resourceInstanceIds: [createdResourceId] },
             );
             expect(featureCollection.features).toHaveLength(1);
@@ -434,7 +450,13 @@ describe("tiles that gain or lose all their geometry", () => {
             extentLayer,
         );
         expect(deleteResult.failures).toEqual([]);
-        expect(deleteResult.deletedTileCount).toBe(1);
+        // Released 8.1 can't delete tiles over its API, so the plugin clears
+        // the tile's geometry instead.
+        if (STOCK_ARCHES) {
+            expect(deleteResult.clearedTileCount).toBe(1);
+        } else {
+            expect(deleteResult.deletedTileCount).toBe(1);
+        }
 
         const finalLayer = await loadResourceLayer(
             fakeApp,
@@ -450,14 +472,9 @@ describe("finding a resource to attach to", () => {
     it("finds a resource by name", async () => {
         const resourceInstanceId = await findGeneratedResourceId(editorSession);
         const [locationFeature] = (
-            await fetchNodeFeatures(
-                fetch,
-                editorSession,
-                LOCATION_NODE.nodeid,
-                {
-                    resourceInstanceIds: [resourceInstanceId],
-                },
-            )
+            await searchNodeFeatures(fetch, editorSession, LOCATION_NODE, {
+                resourceInstanceIds: [resourceInstanceId],
+            })
         ).features;
         const name = String(locationFeature.properties?.primary_name);
 

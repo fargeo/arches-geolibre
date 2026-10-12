@@ -16,7 +16,8 @@
         "test:integration": "vitest --run --project integration",
         "test:e2e": "playwright test",
         "gettext:extract": "rm -f src/arches_geolibre/locale/en/app.po && vue-gettext-extract",
-        "gettext:compile": "vue-gettext-compile"
+        "gettext:compile": "vue-gettext-compile",
+        "package:zip": "npm run build && node scripts/package-plugin.mjs"
     },
     "dependencies": {
         "@openvue/themes": "1.0.0",

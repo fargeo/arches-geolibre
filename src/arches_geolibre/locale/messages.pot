@@ -28,27 +28,40 @@ msgstr ""
 msgid "Your pending edits remove geometry, so there's nothing to draw."
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:76
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:78
 msgid "Could not load the catalog: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:126
-msgid "%{name} has no geometry you're allowed to see."
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:127
+msgid "Loading %{loaded} of %{total} resources in view…"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:133
-msgid "Could not load %{name}: %{reason}"
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:136
+msgid "%{name} has no geometry you're allowed to see in this view."
+msgstr ""
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:143
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:230
+msgid "%{total} resources are in view, more than the %{maximum} that can be loaded at once. Zoom in and try again."
 msgstr ""
 
 #: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:151
+msgid "Could not load %{name}: %{reason}"
+msgstr ""
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:170
 msgid "Add Arches data"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:152
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:173
+msgid "Layers load the resources in the current map view. Zoom to the area you want first."
+msgstr ""
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:178
 msgid "Loading the catalog…"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:173
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:199
 msgid "You can't see any geometry in this Arches instance."
 msgstr ""
 
@@ -187,35 +200,43 @@ msgstr ""
 msgid "Or select one of the resource's features on the map."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:221
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:268
 msgid "Saved %{tileCount} tile(s); created %{resourceCount} resource(s)."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:231
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:278
 msgid "Deleted %{count} tile(s) left without geometry."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:238
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:285
 msgid "Cleared the geometry of %{count} tile(s) that couldn't be deleted."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:246
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:293
 msgid "%{count} edit(s) await review in Arches and won't show on the map until approved."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:272
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:319
+msgid "Load this view"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:321
+msgid "Replace this layer with the resources in the current map view"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:332
 msgid "Check"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:279
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:339
 msgid "Push to Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:288
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:348
 msgid "%{edited} edited, %{created} new, %{deleted} deleted"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:298
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:358
 msgid "Read only"
 msgstr ""
 
@@ -227,23 +248,23 @@ msgstr ""
 msgid "Edit a layer with ⋯ → Edit geometry, then save the edit session. Zoom in before drawing: the editor can't draw on the zoomed-out globe."
 msgstr ""
 
-#: src/arches_geolibre/components/ProjectLayersSection.vue:59
+#: src/arches_geolibre/components/ProjectLayersSection.vue:65
 msgid "Could not reload %{name}: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/ProjectLayersSection.vue:69
+#: src/arches_geolibre/components/ProjectLayersSection.vue:75
 msgid "Arches layers in this project"
 msgstr ""
 
-#: src/arches_geolibre/components/ProjectLayersSection.vue:73
+#: src/arches_geolibre/components/ProjectLayersSection.vue:79
 msgid "These layers show the data saved with the project. Reload them to see Arches' current data."
 msgstr ""
 
-#: src/arches_geolibre/components/ProjectLayersSection.vue:87
+#: src/arches_geolibre/components/ProjectLayersSection.vue:93
 msgid "Reload from Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/ProjectLayersSection.vue:95
+#: src/arches_geolibre/components/ProjectLayersSection.vue:101
 msgid "This project's Arches layers come from %{instanceUrl}. Sign in there to reload them."
 msgstr ""
 

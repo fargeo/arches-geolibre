@@ -1,14 +1,18 @@
 import {
-    fetchNodeFeatures,
+    searchNodeFeatures,
     signInWithPassword,
 } from "@/arches_geolibre/utils/arches-client.ts";
-import { pushLayerChanges } from "@/arches_geolibre/utils/arches-layers.ts";
+import {
+    pushLayerChanges,
+    waitForSearchIndex,
+} from "@/arches_geolibre/utils/arches-layers.ts";
 import { detectFeatureChanges } from "@/arches_geolibre/utils/change-detection.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
 import { reconcilePendingChanges } from "@/arches_geolibre/utils/push-plan.ts";
 
 import type { Feature, Geometry } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+import type { MapBounds } from "@/arches_geolibre/utils/arches-client.ts";
 import type { PushResult } from "@/arches_geolibre/utils/arches-layers.ts";
 import type { ChangeTarget } from "@/arches_geolibre/utils/push-plan.ts";
 import type {
@@ -20,6 +24,8 @@ import type {
 // Matches test-instance/geolibre_test_support/constants.py.
 export const ARCHES_TEST_URL =
     process.env.ARCHES_TEST_URL ?? "http://localhost:8001";
+/** The test instance is running as released 8.1, without its stand-ins. */
+export const STOCK_ARCHES = process.env.GEOLIBRE_TEST_STOCK_ARCHES === "true";
 export const EDITOR_USERNAME = "geolibre_editor";
 export const CONTRIBUTOR_USERNAME = "geolibre_contributor";
 export const VIEWER_USERNAME = "geolibre_viewer";
@@ -85,7 +91,7 @@ export async function loadResourceLayer(
     node: ArchesGeometryNode = LOCATION_NODE,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetch, session, node.nodeid, {
+        await searchNodeFeatures(fetch, session, node, {
             resourceInstanceIds: [resourceInstanceId],
         }),
     );
@@ -95,10 +101,14 @@ export async function loadResourceLayer(
         layerId,
         node,
         source: { kind: "node" },
+        bounds: null,
         isWritable: true,
         baselineFeatures: structuredClone(taggedCollection.features),
     };
 }
+
+// Central London: a few hundred test resources, well under the load limit.
+export const TEST_AREA: MapBounds = [-0.15, 51.49, -0.1, 51.52];
 
 let generatedResourceId: Promise<string> | undefined;
 
@@ -111,31 +121,20 @@ let generatedResourceId: Promise<string> | undefined;
 export function findGeneratedResourceId(
     session: ArchesSession,
 ): Promise<string> {
-    generatedResourceId ??= fetchFirstLocationResourceId(session);
+    generatedResourceId ??= searchNodeFeatures(fetch, session, LOCATION_NODE, {
+        bounds: TEST_AREA,
+    }).then(
+        (featureCollection) =>
+            featureCollection.features[0].properties?.resourceinstanceid,
+    );
     return generatedResourceId;
-}
-
-async function fetchFirstLocationResourceId(
-    session: ArchesSession,
-): Promise<string> {
-    const query = new URLSearchParams({
-        nodeid: LOCATION_NODE.nodeid,
-        limit: "1",
-    });
-    const response = await fetch(`${session.instanceUrl}/geojson?${query}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-    });
-    const featureCollection = (await response.json()) as {
-        features: Feature<Geometry>[];
-    };
-    return featureCollection.features[0].properties?.resourceinstanceid;
 }
 
 /**
  * Pushes every change in a layer, as a user who leaves all changes ticked.
  * Freshly drawn features go to `target`, or to new resources.
  */
-export function pushEverything(
+export async function pushEverything(
     fakeApp: FakeGeoLibreApp,
     session: ArchesSession,
     loadedLayer: LoadedArchesLayer,
@@ -149,52 +148,35 @@ export function pushEverything(
     const pendingChanges = reconcilePendingChanges([], changes).map(
         (pendingChange) => ({ ...pendingChange, target }),
     );
-    return pushLayerChanges(
+    const pushResult = await pushLayerChanges(
         geolibreApp,
         fetch,
         session,
         loadedLayer,
         pendingChanges,
     );
+    await waitForSearchIndex();
+    return pushResult;
 }
 
-/** A generated resource with no Extent geometry, from the first few. */
+/** A generated resource in the test area with no Extent geometry. */
 export async function findResourceWithoutExtent(
     session: ArchesSession,
 ): Promise<string> {
-    const query = new URLSearchParams({
-        nodeid: LOCATION_NODE.nodeid,
-        limit: "20",
-    });
-    const response = await fetch(`${session.instanceUrl}/geojson?${query}`, {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-    });
-    const locations = (await response.json()) as {
-        features: Feature<Geometry>[];
-    };
-    const candidateIds = [
-        ...new Set(
-            locations.features.map(
-                (feature) => feature.properties?.resourceinstanceid as string,
-            ),
-        ),
-    ];
-    const extents = await fetchNodeFeatures(
-        fetch,
-        session,
-        EXTENT_NODE.nodeid,
-        {
-            resourceInstanceIds: candidateIds,
-        },
-    );
+    const [locations, extents] = await Promise.all([
+        searchNodeFeatures(fetch, session, LOCATION_NODE, {
+            bounds: TEST_AREA,
+        }),
+        searchNodeFeatures(fetch, session, EXTENT_NODE, { bounds: TEST_AREA }),
+    ]);
     const idsWithExtent = new Set(
         extents.features.map(
             (feature) => feature.properties?.resourceinstanceid,
         ),
     );
-    const resourceInstanceId = candidateIds.find(
-        (candidateId) => !idsWithExtent.has(candidateId),
-    );
+    const resourceInstanceId = locations.features
+        .map((feature) => feature.properties?.resourceinstanceid as string)
+        .find((candidateId) => !idsWithExtent.has(candidateId));
     if (!resourceInstanceId) {
         throw new Error("No test resource without an Extent was found.");
     }

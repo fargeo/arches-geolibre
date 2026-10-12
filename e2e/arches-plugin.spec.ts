@@ -76,13 +76,15 @@ test("shows a selected feature's resource with a link into Arches", async ({
         .getByRole("menuitem", { name: "Select by Expression..." })
         .click();
     const dialog = page.getByRole("dialog");
-    await dialog.locator("textarea").fill('["==", ["id"], 1]');
+    await dialog.locator("textarea").fill('["has", "tileid"]');
     await dialog.getByRole("button", { name: "Select features" }).click();
 
     const selectionSection = archesPanel(page).locator(".selection-section");
-    await expect(selectionSection).toContainText("Selected resource");
+    await expect(selectionSection).toContainText(/selected resource/i);
     await expect(
-        selectionSection.getByRole("button", { name: "Edit in Arches" }),
+        selectionSection
+            .getByRole("button", { name: "Edit in Arches" })
+            .first(),
     ).toBeVisible();
 });
 

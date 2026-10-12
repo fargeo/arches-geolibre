@@ -31,9 +31,13 @@ Manage Plugins.
 See [docs/testing.md](docs/testing.md) for setting up the Arches test
 instance, running each suite, and testing in GeoLibre Desktop.
 
+To try the plugin on an existing Arches 8.1 instance, see
+[docs/testing-on-your-arches.md](docs/testing-on-your-arches.md).
+`npm run package:zip` builds the zip to install in GeoLibre.
+
 ## Arches requirements
 
-- Arches 8.1+
+- Arches 8.1+ (works with released 8.1; no server changes needed)
 - `OAUTH_CLIENT_ID` set, and a matching OAuth application allowing the
   resource-owner password grant
 - Users who edit must be in the `Resource Editor` group

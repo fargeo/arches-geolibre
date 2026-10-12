@@ -1,6 +1,6 @@
 import {
     deleteTile,
-    fetchNodeFeatures,
+    searchNodeFeatures,
     saveTileGeometry,
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
@@ -11,8 +11,9 @@ import {
     isFreshlyDrawn,
 } from "@/arches_geolibre/utils/push-plan.ts";
 
-import type { Feature, Geometry, Position } from "geojson";
+import type { Feature, Geometry } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+import type { MapBounds } from "@/arches_geolibre/utils/arches-client.ts";
 import type {
     PendingChange,
     PushOperation,
@@ -38,8 +39,14 @@ export interface PushResult {
 export interface LoadArchesLayerOptions {
     source: ArchesLayerSource;
     isWritable: boolean;
+    /** The area to load; null loads every resource (up to the limit). */
+    bounds: MapBounds | null;
     signal?: AbortSignal;
+    onProgress?: (loadedResources: number, totalResources: number) => void;
 }
+
+/** Elasticsearch makes writes searchable within about a second. */
+const SEARCH_INDEX_REFRESH_MILLISECONDS = 1500;
 
 export function archesSourcePath(
     session: ArchesSession,
@@ -62,9 +69,9 @@ export function archesLayerName(
 }
 
 /**
- * Loads a geometry node into a new GeoLibre layer, styled as Arches styles
- * it, and zooms to it. A spatial view loads its geometry node: on 8.1 there
- * is no endpoint that reads a view's attribute columns.
+ * Loads a geometry node's features within an area into a new GeoLibre layer,
+ * styled as Arches styles it. A spatial view loads its geometry node: on 8.1
+ * there is no endpoint that reads a view's attribute columns.
  */
 export async function loadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
@@ -74,8 +81,10 @@ export async function loadArchesLayer(
     options: LoadArchesLayerOptions,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
+        await searchNodeFeatures(fetchImplementation, session, node, {
+            bounds: options.bounds,
             signal: options.signal,
+            onProgress: options.onProgress,
         }),
     );
     const layerId = geolibreApp.addGeoJsonLayer(
@@ -93,14 +102,11 @@ export async function loadArchesLayer(
             styleResult.warnings,
         );
     }
-    const bounds = featureBounds(taggedCollection.features);
-    if (bounds) {
-        geolibreApp.fitBounds?.(bounds);
-    }
     return {
         layerId,
         node,
         source: options.source,
+        bounds: options.bounds,
         isWritable: options.isWritable,
         baselineFeatures: structuredClone(taggedCollection.features),
     };
@@ -126,7 +132,7 @@ export async function pushLayerChanges(
     const existingFeatures = await fetchAttachTargetFeatures(
         fetchImplementation,
         session,
-        loadedLayer.node.nodeid,
+        loadedLayer.node,
         currentFeatures,
         pendingChanges,
     );
@@ -212,7 +218,7 @@ export async function pushLayerChanges(
 async function fetchAttachTargetFeatures(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
-    nodeId: string,
+    node: ArchesGeometryNode,
     currentFeatures: Feature<Geometry | null>[],
     pendingChanges: PendingChange[],
 ): Promise<Feature<Geometry | null>[]> {
@@ -240,10 +246,10 @@ async function fetchAttachTargetFeatures(
     if (resourceIdsToFetch.length === 0) {
         return [];
     }
-    const featureCollection = await fetchNodeFeatures(
+    const featureCollection = await searchNodeFeatures(
         fetchImplementation,
         session,
-        nodeId,
+        node,
         { resourceInstanceIds: resourceIdsToFetch },
     );
     return tagArchesFeatures(featureCollection).features;
@@ -272,17 +278,25 @@ function describeFailure(operation: PushOperation, error: unknown): string {
 }
 
 /**
- * Splits and copies leave the layer holding duplicate feature keys, so after a
- * push the layer is replaced with a fresh load from Arches rather than
- * re-baselined in place.
+ * Replaces a layer with a fresh load from Arches, of its own area or of
+ * `bounds`. Splits and copies leave the layer holding duplicate feature keys,
+ * so after a push the layer is reloaded rather than re-baselined in place.
  */
 export async function reloadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     loadedLayer: Pick<LoadedArchesLayer, "layerId" | "node" | "source"> &
-        Partial<Pick<LoadedArchesLayer, "isWritable">>,
+        Partial<Pick<LoadedArchesLayer, "isWritable" | "bounds">>,
+    options: {
+        bounds?: MapBounds | null;
+        afterPush?: boolean;
+        onProgress?: LoadArchesLayerOptions["onProgress"];
+    } = {},
 ): Promise<LoadedArchesLayer> {
+    if (options.afterPush) {
+        await waitForSearchIndex();
+    }
     const reloadedLayer = await loadArchesLayer(
         geolibreApp,
         fetchImplementation,
@@ -291,10 +305,22 @@ export async function reloadArchesLayer(
         {
             source: loadedLayer.source,
             isWritable: loadedLayer.isWritable ?? true,
+            bounds:
+                options.bounds !== undefined
+                    ? options.bounds
+                    : (loadedLayer.bounds ?? null),
+            onProgress: options.onProgress,
         },
     );
     removeLayer(geolibreApp, loadedLayer.layerId);
     return reloadedLayer;
+}
+
+/** Lets writes reach Arches search before reading them back through it. */
+export function waitForSearchIndex(): Promise<void> {
+    return new Promise((resolve) =>
+        setTimeout(resolve, SEARCH_INDEX_REFRESH_MILLISECONDS),
+    );
 }
 
 /**
@@ -307,48 +333,4 @@ export function removeLayer(
     layerId: string,
 ): void {
     geolibreApp.unregisterExternalNativeLayer?.(layerId);
-}
-
-export function featureBounds(
-    features: Feature<Geometry | null>[],
-): [number, number, number, number] | null {
-    let west = Infinity;
-    let south = Infinity;
-    let east = -Infinity;
-    let north = -Infinity;
-    for (const feature of features) {
-        for (const [longitude, latitude] of positionsOf(feature.geometry)) {
-            west = Math.min(west, longitude);
-            south = Math.min(south, latitude);
-            east = Math.max(east, longitude);
-            north = Math.max(north, latitude);
-        }
-    }
-    return Number.isFinite(west) ? [west, south, east, north] : null;
-}
-
-function* positionsOf(geometry: Geometry | null): Generator<Position> {
-    if (!geometry) {
-        return;
-    }
-    if (geometry.type === "GeometryCollection") {
-        for (const memberGeometry of geometry.geometries) {
-            yield* positionsOf(memberGeometry);
-        }
-        return;
-    }
-    yield* flattenPositions(geometry.coordinates);
-}
-
-function* flattenPositions(coordinates: unknown): Generator<Position> {
-    if (!Array.isArray(coordinates)) {
-        return;
-    }
-    if (typeof coordinates[0] === "number") {
-        yield coordinates as Position;
-        return;
-    }
-    for (const nestedCoordinates of coordinates) {
-        yield* flattenPositions(nestedCoordinates);
-    }
 }

@@ -31,8 +31,12 @@ export async function canvasPoint(
     };
 }
 
+// Central London at zoom 14: about a hundred test resources, well under
+// the plugin's load limit. Layers load what's in view.
+const TEST_AREA_URL = "/?lat=51.505&lon=-0.125&zoom=14";
+
 export async function openArchesPanel(page: Page): Promise<void> {
-    await page.goto("/");
+    await page.goto(TEST_AREA_URL);
     await page.getByRole("button", { name: "Plugins", exact: true }).click();
     await page.getByRole("menuitem", { name: /^Installed/ }).hover();
     await page.getByRole("menuitem", { name: /^Arches/ }).click();
