@@ -68,8 +68,10 @@ npm run gettext:extract
 npm run gettext:compile
 ```
 
-The plugin follows GeoLibre's language when a catalog exists for it, and
-falls back to English otherwise.
+English is the source language, so `gettext:extract` regenerates its
+catalog rather than merging it: merging fuzzy-matches new strings to old
+ones. The plugin follows GeoLibre's language when a catalog exists for it,
+and falls back to English otherwise.
 
 ## License
 

@@ -2,23 +2,53 @@ msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:75
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:67
+msgid "Could not read your edits awaiting review: %{reason}"
+msgstr ""
+
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:87
+msgid "Awaiting review (read only)"
+msgstr ""
+
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:104
+msgid "Awaiting review"
+msgstr ""
+
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:108
+msgid "%{count} of your edits is waiting for a reviewer. It's drawn in orange on the map."
+msgid_plural "%{count} of your edits are waiting for a reviewer. They're drawn in orange on the map."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:117
+msgid "Refresh"
+msgstr ""
+
+#: src/arches_geolibre/components/AwaitingReviewSection.vue:126
+msgid "Your pending edits remove geometry, so there's nothing to draw."
+msgstr ""
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:76
 msgid "Could not load the catalog: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:125
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:126
+msgid "%{name} has no geometry you're allowed to see."
+msgstr ""
+
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:133
 msgid "Could not load %{name}: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:143
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:151
 msgid "Add Arches data"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:144
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:152
 msgid "Loading the catalog…"
 msgstr ""
 
-#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:165
+#: src/arches_geolibre/components/CatalogSection/CatalogSection.vue:173
 msgid "You can't see any geometry in this Arches instance."
 msgstr ""
 
@@ -84,44 +114,117 @@ msgstr ""
 msgid "Sign in"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:49
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:51
 msgid "Your saved Arches session has expired. Sign in again."
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:75
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:83
 msgid "Arches connection"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:83
+#: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:91
 msgid "Reconnecting…"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:82
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:34
+msgid "Edited"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:36
+msgid "Deleted"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:39
+msgid "New feature"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:40
+msgid "New part"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:68
+msgid "You can't edit this resource, so this change won't be pushed."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:75
+msgid "Won't be pushed; Arches keeps its current geometry."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:39
+msgid "New resource"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:40
+msgid "Existing resource"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:111
+msgid "The selected feature belongs to a different resource model."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:136
+msgid "Attach to %{name}"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:143
+msgid "Search by name"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:144
+msgid "Search for a resource by name"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:152
+msgid "Use the selected feature: %{name}"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:154
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:62
+msgid "Unnamed resource"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:164
+msgid "Or select one of the resource's features on the map."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:221
 msgid "Saved %{tileCount} tile(s); created %{resourceCount} resource(s)."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:92
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:231
+msgid "Deleted %{count} tile(s) left without geometry."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:238
+msgid "Cleared the geometry of %{count} tile(s) that couldn't be deleted."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:246
 msgid "%{count} edit(s) await review in Arches and won't show on the map until approved."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:125
-msgid "Pending changes"
-msgstr ""
-
-#: src/arches_geolibre/components/PendingChanges.vue:141
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:272
 msgid "Check"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:147
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:279
 msgid "Push to Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:159
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:288
 msgid "%{edited} edited, %{created} new, %{deleted} deleted"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges.vue:179
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:298
 msgid "Read only"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/PendingChanges.vue:14
+msgid "Pending changes"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/PendingChanges.vue:17
+msgid "Edit a layer with ⋯ → Edit geometry, then save the edit session. Zoom in before drawing: the editor can't draw on the zoomed-out globe."
 msgstr ""
 
 #: src/arches_geolibre/components/ProjectLayersSection.vue:59
@@ -142,10 +245,6 @@ msgstr ""
 
 #: src/arches_geolibre/components/ProjectLayersSection.vue:95
 msgid "This project's Arches layers come from %{instanceUrl}. Sign in there to reload them."
-msgstr ""
-
-#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:62
-msgid "Unnamed resource"
 msgstr ""
 
 #: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:67

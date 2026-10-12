@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import AwaitingReviewSection from "@/arches_geolibre/components/AwaitingReviewSection.vue";
 import CatalogSection from "@/arches_geolibre/components/CatalogSection/CatalogSection.vue";
 import ConnectionSection from "@/arches_geolibre/components/ConnectionSection/ConnectionSection.vue";
 import DiagnosticsSection from "@/arches_geolibre/components/DiagnosticsSection/DiagnosticsSection.vue";
-import PendingChanges from "@/arches_geolibre/components/PendingChanges.vue";
+import PendingChanges from "@/arches_geolibre/components/PendingChanges/PendingChanges.vue";
 import ProjectLayersSection from "@/arches_geolibre/components/ProjectLayersSection.vue";
 import SelectionSection from "@/arches_geolibre/components/SelectionSection/SelectionSection.vue";
 
@@ -19,6 +20,7 @@ const workspace = useArchesWorkspace();
         <ConnectionSection />
         <ProjectLayersSection v-if="workspace.savedLayers.length > 0" />
         <template v-if="workspace.session">
+            <AwaitingReviewSection />
             <SelectionSection />
             <CatalogSection />
             <PendingChanges />

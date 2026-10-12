@@ -38,6 +38,7 @@ const spatialViews = ref<ArchesSpatialView[]>([]);
 const isFetchingCatalog = ref(false);
 const loadingEntryKey = ref<string | null>(null);
 const errorMessage = ref("");
+const infoMessage = ref("");
 
 let loadAbortController: AbortController | null = null;
 
@@ -107,6 +108,7 @@ async function addToMap(
     loadAbortController = new AbortController();
     loadingEntryKey.value = entryKey;
     errorMessage.value = "";
+    infoMessage.value = "";
     try {
         const loadedLayer = await loadArchesLayer(
             geolibreApp,
@@ -120,6 +122,12 @@ async function addToMap(
             },
         );
         workspace.loadedLayers.push(loadedLayer);
+        if (loadedLayer.baselineFeatures.length === 0) {
+            infoMessage.value = $gettext(
+                "%{name} has no geometry you're allowed to see.",
+                { name: node.name },
+            );
+        }
     } catch (error) {
         if (!loadAbortController.signal.aborted) {
             errorMessage.value = $gettext("Could not load %{name}: %{reason}", {
@@ -165,6 +173,13 @@ function cancelLoading(): void {
                 $gettext("You can't see any geometry in this Arches instance.")
             }}
         </p>
+        <Message
+            v-if="infoMessage"
+            severity="info"
+            size="small"
+        >
+            {{ infoMessage }}
+        </Message>
         <Message
             v-if="errorMessage"
             severity="error"

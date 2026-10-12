@@ -15,6 +15,8 @@ import {
     useGeoLibreApp,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import { refreshSession } from "@/arches_geolibre/utils/arches-client.ts";
+import { removeLayer } from "@/arches_geolibre/utils/arches-layers.ts";
+import { loadTrackedReviewTiles } from "@/arches_geolibre/utils/pending-review.ts";
 
 import type { ArchesSession } from "@/arches_geolibre/types.ts";
 
@@ -62,11 +64,17 @@ function startSession(session: ArchesSession): void {
         JSON.stringify(session),
     );
     workspace.session = session;
+    workspace.trackedReviewTiles = loadTrackedReviewTiles(session);
 }
 
 function signOut(): void {
     geolibreApp.credentials?.set(CREDENTIAL_SESSION_NAME, "");
     workspace.session = null;
+    workspace.trackedReviewTiles = [];
+    if (workspace.awaitingReviewLayerId) {
+        removeLayer(geolibreApp, workspace.awaitingReviewLayerId);
+        workspace.awaitingReviewLayerId = null;
+    }
 }
 </script>
 

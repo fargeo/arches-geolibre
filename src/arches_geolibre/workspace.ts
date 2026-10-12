@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 
+import type { TrackedReviewTile } from "@/arches_geolibre/utils/pending-review.ts";
 import type {
     ArchesGeometryNode,
     ArchesLayerSource,
@@ -31,6 +32,10 @@ export interface ArchesWorkspace {
     projectInstanceUrl: string | null;
     /** Layers from an opened project, awaiting a reload from Arches. */
     savedLayers: SavedArchesLayer[];
+    /** Tiles holding the signed-in user's edits that await review. */
+    trackedReviewTiles: TrackedReviewTile[];
+    /** The read-only layer drawing those edits. */
+    awaitingReviewLayerId: string | null;
 }
 
 export function createArchesWorkspace(): ArchesWorkspace {
@@ -39,6 +44,8 @@ export function createArchesWorkspace(): ArchesWorkspace {
         loadedLayers: [],
         projectInstanceUrl: null,
         savedLayers: [],
+        trackedReviewTiles: [],
+        awaitingReviewLayerId: null,
     });
 }
 

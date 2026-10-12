@@ -105,3 +105,32 @@ save, and a GeoLibre restart picks the change up without reinstalling.
 To check the session survives a restart, quit and reopen GeoLibre after
 signing in. The panel should come back signed in, with its tokens read from
 the macOS keychain.
+
+## Editing checks in GeoLibre Desktop
+
+The browser suite covers drawing, attaching by search, pushing and the
+contributor overlay. These need a person:
+
+1. **Vertex edits, split and merge.** As `geolibre_editor` on Extent, drag a
+   vertex, split a polygon, merge two polygons, then save the session. Check
+   the pending list, push, and confirm the result in Arches.
+2. **Excluding a change.** Make two edits, untick one, and push. Only the
+   ticked one should reach Arches, and the reloaded layer should show the
+   unticked one back as it was.
+3. **Map-pick attach.** Draw a feature, choose **Existing resource**, then
+   select a feature of another resource on the map. Use **Use the selected
+   feature** and push. The new geometry should join that resource.
+4. **Deleting all of a resource's geometry.** As `geolibre_editor`, delete
+   every Extent feature of one resource and push: the tile is deleted. As
+   `geolibre_contributor`, do the same: the geometry is cleared as a
+   provisional edit instead.
+5. **Awaiting review.** As `geolibre_contributor`, edit an existing feature
+   and push. The orange "Awaiting review (read only)" layer should show it.
+   Approve the edit in Arches as `geolibre_editor`, then **Refresh**: the
+   overlay should clear and the approved geometry appear after reloading the
+   layer.
+6. **Blocked changes.** As `geolibre_viewer`, edit a feature: the change
+   should be unticked, unchangeable, and explained.
+
+If you add test users after building the instance, reindex first (see
+`test-instance/README.md`). Otherwise they won't see any resources.

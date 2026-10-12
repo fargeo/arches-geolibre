@@ -12,6 +12,7 @@ const SESSION: ArchesSession = {
     accessToken: "secret-access-token",
     refreshToken: "secret-refresh-token",
     expiresAt: 0,
+    userId: 3,
     username: "editor",
     isReviewer: true,
 };

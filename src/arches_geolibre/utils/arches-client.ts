@@ -182,6 +182,116 @@ export async function fetchCanEditResource(
 }
 
 /**
+ * Deletes a tile through /api/tiles/<id>, which Arches 8.1 doesn't support
+ * yet (see the Phase 1 core branch). Returns false when the tile couldn't be
+ * deleted, so the caller can fall back to clearing it.
+ */
+export async function deleteTile(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    tileId: string,
+): Promise<boolean> {
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        `/api/tiles/${tileId}`,
+        { method: "DELETE" },
+    );
+    return response.ok;
+}
+
+export interface ArchesTile {
+    tileid: string;
+    resourceinstance_id: string;
+    nodegroup_id: string;
+    data: Record<string, unknown>;
+    provisionaledits: Record<
+        string,
+        { status: string; value: Record<string, unknown> }
+    > | null;
+}
+
+/** The tile, or null when it's gone or the user may no longer read it. */
+export async function fetchTile(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    tileId: string,
+): Promise<ArchesTile | null> {
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        `/api/tiles/${tileId}`,
+    );
+    if (response.status === 403 || response.status === 404) {
+        return null;
+    }
+    await assertOk(response, "Could not read the tile");
+    return (await response.json()) as ArchesTile;
+}
+
+export interface ResourceSearchResult {
+    resourceInstanceId: string;
+    name: string;
+}
+
+/** Resources of one model whose names match `text`, through Arches search. */
+export async function searchResources(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    graphId: string,
+    text: string,
+    signal?: AbortSignal,
+): Promise<ResourceSearchResult[]> {
+    const query = new URLSearchParams({
+        "paging-filter": "1",
+        "term-filter": JSON.stringify([
+            {
+                inverted: false,
+                type: "string",
+                context: "",
+                context_label: "",
+                id: text,
+                text,
+                value: text,
+                selected: true,
+            },
+        ]),
+        "resource-type-filter": JSON.stringify([
+            { graphid: graphId, inverted: false },
+        ]),
+    });
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        `/search/resources?${query}`,
+        { signal },
+    );
+    await assertOk(response, "Could not search Arches");
+    const searchResponse = (await response.json()) as {
+        results: {
+            hits: {
+                hits: {
+                    _id: string;
+                    _source: {
+                        displayname: string | { value: string }[];
+                    };
+                }[];
+            };
+        };
+    };
+    return searchResponse.results.hits.hits.map((hit) => ({
+        resourceInstanceId: hit._id,
+        name: readDisplayName(hit._source.displayname),
+    }));
+}
+
+function readDisplayName(displayName: string | { value: string }[]): string {
+    return typeof displayName === "string"
+        ? displayName
+        : (displayName[0]?.value ?? "");
+}
+
+/**
  * Replaces a tile's whole geometry collection through /api/node_value/.
  * Omitting `tileId` creates a new tile, and omitting `resourceInstanceId` as
  * well creates a new resource holding only this geometry.
@@ -255,11 +365,13 @@ async function withUserProfile(
     );
     await assertOk(response, "Could not read the user profile");
     const userProfile = (await response.json()) as {
+        id: number;
         username: string;
         is_reviewer: boolean;
     };
     return {
         ...session,
+        userId: userProfile.id,
         username: userProfile.username,
         isReviewer: userProfile.is_reviewer,
     };
@@ -280,6 +392,7 @@ function toSession(
         accessToken: tokenPayload.access_token,
         refreshToken: tokenPayload.refresh_token,
         expiresAt: Date.now() + tokenPayload.expires_in * 1000,
+        userId: 0,
         username: "",
         isReviewer: false,
     };

@@ -1,21 +1,22 @@
 import {
+    deleteTile,
     fetchNodeFeatures,
     saveTileGeometry,
 } from "@/arches_geolibre/utils/arches-client.ts";
-import { detectFeatureChanges } from "@/arches_geolibre/utils/change-detection.ts";
-import {
-    readTileId,
-    tagArchesFeatures,
-} from "@/arches_geolibre/utils/feature-keys.ts";
-import {
-    buildChangedTileCollections,
-    toArchesTileFeature,
-} from "@/arches_geolibre/utils/tile-collections.ts";
-
+import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
 import { buildArchesLayerStyle } from "@/arches_geolibre/utils/layer-style.ts";
+import {
+    affectedResourceId,
+    buildPushOperations,
+    isFreshlyDrawn,
+} from "@/arches_geolibre/utils/push-plan.ts";
 
 import type { Feature, Geometry, Position } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+import type {
+    PendingChange,
+    PushOperation,
+} from "@/arches_geolibre/utils/push-plan.ts";
 import type {
     ArchesGeometryNode,
     ArchesLayerSource,
@@ -25,8 +26,12 @@ import type {
 
 export interface PushResult {
     savedTileCount: number;
-    provisionalTileCount: number;
+    deletedTileCount: number;
+    /** Tiles whose geometry was cleared because they couldn't be deleted. */
+    clearedTileCount: number;
     createdResourceIds: string[];
+    /** Tiles whose changes await review: the user isn't a Resource Reviewer. */
+    provisionalTileIds: string[];
     failures: string[];
 }
 
@@ -102,83 +107,168 @@ export async function loadArchesLayer(
 }
 
 /**
- * Writes a layer's pending changes to Arches. Edits, deletions, and copies or
- * split-off parts of existing features are saved by rewriting their tile's
- * collection; each freshly drawn feature becomes a new resource holding only
- * that geometry, for the user to finish in Arches.
- * All writes share one edit-log transaction so they can be reversed together.
+ * Writes a layer's included pending changes to Arches, all in one edit-log
+ * transaction so they can be reversed together.
+ *
+ * A tile left with no geometry is deleted where Arches allows it (reviewers,
+ * on an instance with tile deletion in its API); otherwise its geometry is
+ * cleared. Edits by users outside Resource Reviewer are saved as provisional.
  */
 export async function pushLayerChanges(
     geolibreApp: GeoLibreAppAPI,
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     loadedLayer: LoadedArchesLayer,
+    pendingChanges: PendingChange[],
 ): Promise<PushResult> {
     const currentFeatures =
         geolibreApp.getLayerFeatures?.(loadedLayer.layerId) ?? [];
-    const changes = detectFeatureChanges(
-        loadedLayer.baselineFeatures,
+    const existingFeatures = await fetchAttachTargetFeatures(
+        fetchImplementation,
+        session,
+        loadedLayer.node.nodeid,
         currentFeatures,
+        pendingChanges,
     );
+    const operations = buildPushOperations({
+        baselineFeatures: loadedLayer.baselineFeatures,
+        currentFeatures,
+        pendingChanges,
+        existingFeatures,
+    });
+
     const transactionId = crypto.randomUUID();
     const result: PushResult = {
         savedTileCount: 0,
-        provisionalTileCount: 0,
+        deletedTileCount: 0,
+        clearedTileCount: 0,
         createdResourceIds: [],
+        provisionalTileIds: [],
         failures: [],
     };
+    const nodeId = loadedLayer.node.nodeid;
 
-    const tileCollections = buildChangedTileCollections(
-        currentFeatures,
-        changes,
-    );
-    for (const [tileId, featureCollection] of tileCollections) {
+    for (const operation of operations) {
         try {
-            await saveTileGeometry(fetchImplementation, session, {
-                nodeId: loadedLayer.node.nodeid,
-                tileId,
-                featureCollection,
-                transactionId,
-            });
-            result.savedTileCount += 1;
-        } catch (error) {
-            result.failures.push(`Tile ${tileId}: ${String(error)}`);
-        }
-    }
+            if (operation.kind === "delete-tile") {
+                const isDeleted =
+                    session.isReviewer &&
+                    (await deleteTile(
+                        fetchImplementation,
+                        session,
+                        operation.tileId,
+                    ));
+                if (isDeleted) {
+                    result.deletedTileCount += 1;
+                    continue;
+                }
+                await saveTileGeometry(fetchImplementation, session, {
+                    nodeId,
+                    tileId: operation.tileId,
+                    featureCollection: {
+                        type: "FeatureCollection",
+                        features: [],
+                    },
+                    transactionId,
+                });
+                result.clearedTileCount += 1;
+                recordProvisional(result, session, operation.tileId);
+                continue;
+            }
 
-    for (const change of changes) {
-        const isFreshlyDrawn =
-            change.kind === "created" && readTileId(change.feature) === null;
-        if (!isFreshlyDrawn || change.feature.geometry === null) {
-            continue;
-        }
-        try {
             const savedTile = await saveTileGeometry(
                 fetchImplementation,
                 session,
                 {
-                    nodeId: loadedLayer.node.nodeid,
-                    featureCollection: {
-                        type: "FeatureCollection",
-                        features: [toArchesTileFeature(change.feature)],
-                    },
+                    nodeId,
+                    featureCollection: operation.featureCollection,
                     transactionId,
+                    ...(operation.kind === "save-tile" && {
+                        tileId: operation.tileId,
+                    }),
+                    ...(operation.kind === "add-tile" && {
+                        resourceInstanceId: operation.resourceInstanceId,
+                    }),
                 },
             );
-            result.createdResourceIds.push(savedTile.resourceinstance_id);
+            if (operation.kind === "create-resource") {
+                result.createdResourceIds.push(savedTile.resourceinstance_id);
+            } else {
+                result.savedTileCount += 1;
+            }
+            recordProvisional(result, session, savedTile.tileid);
         } catch (error) {
-            result.failures.push(`New feature: ${String(error)}`);
+            result.failures.push(describeFailure(operation, error));
         }
     }
-
-    // Arches saves edits by users outside Resource Reviewer as provisional:
-    // the tile keeps its approved data until a reviewer accepts the edit, and
-    // /geojson only returns approved data.
-    if (!session.isReviewer) {
-        result.provisionalTileCount =
-            result.savedTileCount + result.createdResourceIds.length;
-    }
     return result;
+}
+
+/**
+ * A drawn feature attached to a resource that isn't on the map must join that
+ * resource's existing tile without dropping the features already in it, so
+ * those features are fetched first.
+ */
+async function fetchAttachTargetFeatures(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    nodeId: string,
+    currentFeatures: Feature<Geometry | null>[],
+    pendingChanges: PendingChange[],
+): Promise<Feature<Geometry | null>[]> {
+    const resourceIdsOnMap = new Set(
+        currentFeatures.map(
+            (feature) => feature.properties?.resourceinstanceid,
+        ),
+    );
+    const resourceIdsToFetch = [
+        ...new Set(
+            pendingChanges
+                .filter(
+                    (pendingChange) =>
+                        pendingChange.isIncluded &&
+                        isFreshlyDrawn(pendingChange.change),
+                )
+                .map(affectedResourceId)
+                .filter(
+                    (resourceInstanceId): resourceInstanceId is string =>
+                        resourceInstanceId !== null &&
+                        !resourceIdsOnMap.has(resourceInstanceId),
+                ),
+        ),
+    ];
+    if (resourceIdsToFetch.length === 0) {
+        return [];
+    }
+    const featureCollection = await fetchNodeFeatures(
+        fetchImplementation,
+        session,
+        nodeId,
+        { resourceInstanceIds: resourceIdsToFetch },
+    );
+    return tagArchesFeatures(featureCollection).features;
+}
+
+function recordProvisional(
+    result: PushResult,
+    session: ArchesSession,
+    tileId: string,
+): void {
+    if (!session.isReviewer) {
+        result.provisionalTileIds.push(tileId);
+    }
+}
+
+function describeFailure(operation: PushOperation, error: unknown): string {
+    switch (operation.kind) {
+        case "save-tile":
+        case "delete-tile":
+            return `Tile ${operation.tileId}: ${String(error)}`;
+        case "add-tile":
+            return `Resource ${operation.resourceInstanceId}: ${String(error)}`;
+        case "create-resource":
+            return `New resource: ${String(error)}`;
+    }
 }
 
 /**

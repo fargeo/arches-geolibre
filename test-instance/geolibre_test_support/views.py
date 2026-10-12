@@ -1,7 +1,8 @@
 """
-A local stand-in for the planned Arches core fix to the /geojson endpoint.
+Local stand-ins for planned Arches core fixes, so the plugin can be tested
+against an unpatched Arches 8.1. Remove each once core ships its fix.
 
-The body of ``get`` is core 8.1's ``arches.app.views.api.geo.GeoJSON.get``
+FixedGeoJSON: the body of ``get`` is core 8.1's ``arches.app.views.api.geo.GeoJSON.get``
 with four changes:
 
 1. Resource-level permissions are checked per tile. Core reads ``tile``
@@ -14,15 +15,26 @@ with four changes:
    doesn't run one query per feature.
 """
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from slugify import slugify
 
 from arches.app.datatypes.datatypes import DataTypeFactory
 from arches.app.models import models
+from arches.app.models.tile import Tile as TileProxyModel
+from arches.app.utils.decorators import group_required
 from arches.app.utils.geo_utils import GeoUtils
-from arches.app.utils.permission_backend import get_filtered_instances
+from arches.app.utils.permission_backend import (
+    get_filtered_instances,
+    user_can_edit_resource,
+    user_is_resource_reviewer,
+)
 from arches.app.utils.response import JSONResponse
 from arches.app.views.api.geo import GeoJSON
+from arches.app.views.api.tile import Tile
 
 
 class FixedGeoJSON(GeoJSON):
@@ -198,3 +210,40 @@ class FixedGeoJSON(GeoJSON):
 
         response = JSONResponse(feature_collection, indent=indent)
         return response
+
+
+class TileWithDelete(Tile):
+    """
+    A local stand-in for the planned DELETE on /api/tiles/<tileid>. Core 8.1
+    can only delete tiles through /tile, which token clients can't reach
+    because it requires a CSRF token. The rules are core's TileData.delete:
+    reviewers may delete any tile, others only tiles that are still
+    provisional, and only on an active resource model.
+    """
+
+    @method_decorator(group_required("Resource Editor", raise_exception=True))
+    def delete(self, request, tileid):
+        try:
+            tile = TileProxyModel.objects.get(tileid=tileid)
+        except ObjectDoesNotExist:
+            return JSONResponse(_("Tile not found."), status=404)
+        if not user_can_edit_resource(request.user, tile.resourceinstance_id):
+            return JSONResponse(
+                _("User is not permitted to edit this resource"), status=403
+            )
+        user_is_reviewer = user_is_resource_reviewer(request.user)
+        if not (user_is_reviewer or tile.is_provisional()):
+            return JSONResponse(
+                _(
+                    "You do not have permissions to delete a tile with authoritative data."
+                ),
+                status=403,
+            )
+        if not tile.resourceinstance.graph.is_active:
+            return JSONResponse(_("The resource model is not active."), status=409)
+        if not tile.filter_by_perm(request.user, "delete_nodegroup"):
+            return JSONResponse(_("Permission Denied"), status=403)
+        with transaction.atomic():
+            tile.delete(request=request)
+            tile.after_update_all()
+        return JSONResponse(tile)

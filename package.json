@@ -15,7 +15,7 @@
         "prettier:fix": "prettier . --write",
         "test:integration": "vitest --run --project integration",
         "test:e2e": "playwright test",
-        "gettext:extract": "vue-gettext-extract",
+        "gettext:extract": "rm -f src/arches_geolibre/locale/en/app.po && vue-gettext-extract",
         "gettext:compile": "vue-gettext-compile"
     },
     "dependencies": {

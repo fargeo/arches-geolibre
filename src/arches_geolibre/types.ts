@@ -6,6 +6,7 @@ export interface ArchesSession {
     accessToken: string;
     refreshToken: string;
     expiresAt: number;
+    userId: number;
     username: string;
     /** Edits by anyone else are saved as provisional, pending review. */
     isReviewer: boolean;

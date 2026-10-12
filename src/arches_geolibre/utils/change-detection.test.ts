@@ -1,6 +1,5 @@
 import { detectFeatureChanges } from "@/arches_geolibre/utils/change-detection.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
-import { buildChangedTileCollections } from "@/arches_geolibre/utils/tile-collections.ts";
 
 import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 
@@ -101,68 +100,5 @@ describe("detectFeatureChanges", () => {
             ["deleted", `${FIRST_TILE_ID}:1`],
         ]);
         expect(changes[3].feature).toBe(secondFeature);
-    });
-});
-
-describe("buildChangedTileCollections", () => {
-    it("rebuilds only touched tiles, in stored order, without deleted features", () => {
-        const baseline = loadBaseline();
-        const [firstFeature, , thirdFeature] = baseline;
-        const movedFeature = withGeometry(firstFeature, point(5, 5));
-        const currentFeatures = [thirdFeature, movedFeature];
-
-        const collections = buildChangedTileCollections(
-            currentFeatures,
-            detectFeatureChanges(baseline, currentFeatures),
-        );
-
-        expect([...collections.keys()]).toEqual([FIRST_TILE_ID]);
-        expect(
-            collections
-                .get(FIRST_TILE_ID)
-                ?.features.map((feature) => feature.geometry),
-        ).toEqual([point(5, 5)]);
-    });
-
-    it("empties a tile whose only feature was deleted", () => {
-        const baseline = loadBaseline();
-        const currentFeatures = baseline.slice(0, 2);
-
-        const collections = buildChangedTileCollections(
-            currentFeatures,
-            detectFeatureChanges(baseline, currentFeatures),
-        );
-
-        expect(collections.get(SECOND_TILE_ID)?.features).toEqual([]);
-    });
-
-    it("keeps a copied or split-off part on the tile it came from", () => {
-        const baseline = loadBaseline();
-        const [firstFeature, secondFeature, thirdFeature] = baseline;
-        const splitOffPart = withGeometry(thirdFeature, point(3, 3));
-        const drawnFeature: Feature<Geometry | null> = {
-            type: "Feature",
-            geometry: point(7, 7),
-            properties: {},
-        };
-        const currentFeatures = [
-            firstFeature,
-            secondFeature,
-            thirdFeature,
-            splitOffPart,
-            drawnFeature,
-        ];
-
-        const collections = buildChangedTileCollections(
-            currentFeatures,
-            detectFeatureChanges(baseline, currentFeatures),
-        );
-
-        expect([...collections.keys()]).toEqual([SECOND_TILE_ID]);
-        expect(
-            collections
-                .get(SECOND_TILE_ID)
-                ?.features.map((feature) => feature.geometry),
-        ).toEqual([point(2, 2), point(3, 3)]);
     });
 });

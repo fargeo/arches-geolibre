@@ -1,9 +1,16 @@
-import { signInWithPassword } from "@/arches_geolibre/utils/arches-client.ts";
-import { fetchNodeFeatures } from "@/arches_geolibre/utils/arches-client.ts";
+import {
+    fetchNodeFeatures,
+    signInWithPassword,
+} from "@/arches_geolibre/utils/arches-client.ts";
+import { pushLayerChanges } from "@/arches_geolibre/utils/arches-layers.ts";
+import { detectFeatureChanges } from "@/arches_geolibre/utils/change-detection.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
+import { reconcilePendingChanges } from "@/arches_geolibre/utils/push-plan.ts";
 
 import type { Feature, Geometry } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+import type { PushResult } from "@/arches_geolibre/utils/arches-layers.ts";
+import type { ChangeTarget } from "@/arches_geolibre/utils/push-plan.ts";
 import type {
     ArchesGeometryNode,
     ArchesSession,
@@ -21,6 +28,13 @@ export const LOCATION_NODE: ArchesGeometryNode = {
     name: "Location",
     graph_id: "45f4ab91-54cf-5e17-ba25-c12873c73385",
     nodegroup_id: "c776e991-01ed-5781-b01e-5ee7950c23ff",
+    resourcemodelname: "GeoLibre Test Asset",
+};
+export const EXTENT_NODE: ArchesGeometryNode = {
+    nodeid: "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
+    name: "Extent",
+    graph_id: "45f4ab91-54cf-5e17-ba25-c12873c73385",
+    nodegroup_id: "893fe3f2-56ef-5dc6-90ec-5487aa9423c8",
     resourcemodelname: "GeoLibre Test Asset",
 };
 
@@ -63,14 +77,15 @@ export class FakeGeoLibreApp {
     }
 }
 
-/** Loads one resource's Location features as a plugin layer would. */
+/** Loads one resource's features in a node as a plugin layer would. */
 export async function loadResourceLayer(
     fakeApp: FakeGeoLibreApp,
     session: ArchesSession,
     resourceInstanceId: string,
+    node: ArchesGeometryNode = LOCATION_NODE,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetch, session, LOCATION_NODE.nodeid, {
+        await fetchNodeFeatures(fetch, session, node.nodeid, {
             resourceInstanceIds: [resourceInstanceId],
         }),
     );
@@ -78,7 +93,7 @@ export async function loadResourceLayer(
     fakeApp.setLayerFeatures(layerId, taggedCollection.features);
     return {
         layerId,
-        node: LOCATION_NODE,
+        node,
         source: { kind: "node" },
         isWritable: true,
         baselineFeatures: structuredClone(taggedCollection.features),
@@ -114,4 +129,74 @@ async function fetchFirstLocationResourceId(
         features: Feature<Geometry>[];
     };
     return featureCollection.features[0].properties?.resourceinstanceid;
+}
+
+/**
+ * Pushes every change in a layer, as a user who leaves all changes ticked.
+ * Freshly drawn features go to `target`, or to new resources.
+ */
+export function pushEverything(
+    fakeApp: FakeGeoLibreApp,
+    session: ArchesSession,
+    loadedLayer: LoadedArchesLayer,
+    target: ChangeTarget = { kind: "new-resource" },
+): Promise<PushResult> {
+    const geolibreApp = fakeApp.asHostApi();
+    const changes = detectFeatureChanges(
+        loadedLayer.baselineFeatures,
+        geolibreApp.getLayerFeatures?.(loadedLayer.layerId) ?? [],
+    );
+    const pendingChanges = reconcilePendingChanges([], changes).map(
+        (pendingChange) => ({ ...pendingChange, target }),
+    );
+    return pushLayerChanges(
+        geolibreApp,
+        fetch,
+        session,
+        loadedLayer,
+        pendingChanges,
+    );
+}
+
+/** A generated resource with no Extent geometry, from the first few. */
+export async function findResourceWithoutExtent(
+    session: ArchesSession,
+): Promise<string> {
+    const query = new URLSearchParams({
+        nodeid: LOCATION_NODE.nodeid,
+        limit: "20",
+    });
+    const response = await fetch(`${session.instanceUrl}/geojson?${query}`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+    });
+    const locations = (await response.json()) as {
+        features: Feature<Geometry>[];
+    };
+    const candidateIds = [
+        ...new Set(
+            locations.features.map(
+                (feature) => feature.properties?.resourceinstanceid as string,
+            ),
+        ),
+    ];
+    const extents = await fetchNodeFeatures(
+        fetch,
+        session,
+        EXTENT_NODE.nodeid,
+        {
+            resourceInstanceIds: candidateIds,
+        },
+    );
+    const idsWithExtent = new Set(
+        extents.features.map(
+            (feature) => feature.properties?.resourceinstanceid,
+        ),
+    );
+    const resourceInstanceId = candidateIds.find(
+        (candidateId) => !idsWithExtent.has(candidateId),
+    );
+    if (!resourceInstanceId) {
+        throw new Error("No test resource without an Extent was found.");
+    }
+    return resourceInstanceId;
 }

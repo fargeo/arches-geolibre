@@ -4,17 +4,21 @@ import {
     fetchNodeFeatures,
     fetchSpatialViews,
     refreshSession,
+    searchResources,
 } from "@/arches_geolibre/utils/arches-client.ts";
-import { pushLayerChanges } from "@/arches_geolibre/utils/arches-layers.ts";
+import { fetchOwnPendingFeatures } from "@/arches_geolibre/utils/pending-review.ts";
 
 import {
     CONTRIBUTOR_USERNAME,
     EDITOR_USERNAME,
+    EXTENT_NODE,
     FakeGeoLibreApp,
     LOCATION_NODE,
     VIEWER_USERNAME,
     findGeneratedResourceId,
+    findResourceWithoutExtent,
     loadResourceLayer,
+    pushEverything,
     signIn,
 } from "./support.ts";
 
@@ -132,18 +136,13 @@ describe("creating a resource", () => {
         const layerId = crypto.randomUUID();
         fakeApp.setLayerFeatures(layerId, [drawnFeature(square(-0.1, 51.5))]);
 
-        const pushResult = await pushLayerChanges(
-            fakeApp.asHostApi(),
-            fetch,
-            editorSession,
-            {
-                layerId,
-                node: LOCATION_NODE,
-                source: { kind: "node" },
-                isWritable: true,
-                baselineFeatures: [],
-            },
-        );
+        const pushResult = await pushEverything(fakeApp, editorSession, {
+            layerId,
+            node: LOCATION_NODE,
+            source: { kind: "node" },
+            isWritable: true,
+            baselineFeatures: [],
+        });
 
         expect(pushResult.failures).toEqual([]);
         expect(pushResult.createdResourceIds).toHaveLength(1);
@@ -169,7 +168,6 @@ describe("creating a resource", () => {
 
 describe("editing an existing resource", () => {
     const fakeApp = new FakeGeoLibreApp();
-    const geolibreApp = fakeApp.asHostApi();
     let resourceInstanceId: string;
     let originalFeatureCount: number;
 
@@ -196,15 +194,14 @@ describe("editing an existing resource", () => {
             ...otherFeatures,
         ]);
 
-        const pushResult = await pushLayerChanges(
-            geolibreApp,
-            fetch,
+        const pushResult = await pushEverything(
+            fakeApp,
             editorSession,
             loadedLayer,
         );
         expect(pushResult.failures).toEqual([]);
         expect(pushResult.savedTileCount).toBe(1);
-        expect(pushResult.provisionalTileCount).toBe(0);
+        expect(pushResult.provisionalTileIds).toEqual([]);
 
         const reloadedLayer = await loadResourceLayer(
             fakeApp,
@@ -231,9 +228,8 @@ describe("editing an existing resource", () => {
             { ...firstFeature, id: "17", geometry: square(-0.3, 51.6) },
         ]);
 
-        const pushResult = await pushLayerChanges(
-            geolibreApp,
-            fetch,
+        const pushResult = await pushEverything(
+            fakeApp,
             editorSession,
             loadedLayer,
         );
@@ -267,9 +263,8 @@ describe("editing an existing resource", () => {
             loadedLayer.baselineFeatures.slice(0, -1),
         );
 
-        const pushResult = await pushLayerChanges(
-            geolibreApp,
-            fetch,
+        const pushResult = await pushEverything(
+            fakeApp,
             editorSession,
             loadedLayer,
         );
@@ -285,26 +280,66 @@ describe("editing an existing resource", () => {
         );
     });
 
-    it("saves a non-reviewer's edit as provisional, leaving the map unchanged", async () => {
+    it("attaches a drawn feature to a resource already on the map", async () => {
+        const loadedLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+        );
+        fakeApp.setLayerFeatures(loadedLayer.layerId, [
+            ...loadedLayer.baselineFeatures,
+            drawnFeature(square(-0.25, 51.55)),
+        ]);
+
+        const pushResult = await pushEverything(
+            fakeApp,
+            editorSession,
+            loadedLayer,
+            {
+                kind: "existing-resource",
+                resourceInstanceId,
+                name: "Attach target",
+            },
+        );
+        expect(pushResult.failures).toEqual([]);
+        expect(pushResult.createdResourceIds).toEqual([]);
+
+        const reloadedLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+        );
+        expect(reloadedLayer.baselineFeatures).toHaveLength(
+            originalFeatureCount + 1,
+        );
+
+        fakeApp.setLayerFeatures(
+            reloadedLayer.layerId,
+            reloadedLayer.baselineFeatures.slice(0, -1),
+        );
+        await pushEverything(fakeApp, editorSession, reloadedLayer);
+    });
+
+    it("saves a non-reviewer's edit as provisional and shows it awaiting review", async () => {
         const loadedLayer = await loadResourceLayer(
             fakeApp,
             editorSession,
             resourceInstanceId,
         );
         const [firstFeature, ...otherFeatures] = loadedLayer.baselineFeatures;
+        const proposedGeometry = square(-0.5, 51.3);
         fakeApp.setLayerFeatures(loadedLayer.layerId, [
-            { ...firstFeature, geometry: square(-0.5, 51.3) },
+            { ...firstFeature, geometry: proposedGeometry },
             ...otherFeatures,
         ]);
 
-        const pushResult = await pushLayerChanges(
-            geolibreApp,
-            fetch,
+        const pushResult = await pushEverything(
+            fakeApp,
             contributorSession,
             loadedLayer,
         );
         expect(pushResult.failures).toEqual([]);
-        expect(pushResult.provisionalTileCount).toBe(1);
+        expect(pushResult.provisionalTileIds).toHaveLength(1);
 
         const reloadedLayer = await loadResourceLayer(
             fakeApp,
@@ -314,6 +349,19 @@ describe("editing an existing resource", () => {
         expect(reloadedLayer.baselineFeatures[0].geometry).toEqual(
             firstFeature.geometry,
         );
+
+        const tileId = pushResult.provisionalTileIds[0];
+        const awaitingReview = await fetchOwnPendingFeatures(
+            fetch,
+            contributorSession,
+            [{ tileId, nodeId: LOCATION_NODE.nodeid }],
+        );
+        expect(awaitingReview.stillPending).toEqual([
+            { tileId, nodeId: LOCATION_NODE.nodeid },
+        ]);
+        expect(
+            awaitingReview.features.map((feature) => feature.geometry),
+        ).toContainEqual(proposedGeometry);
     });
 
     it("refuses an edit from a user without edit rights", async () => {
@@ -328,9 +376,8 @@ describe("editing an existing resource", () => {
             ...otherFeatures,
         ]);
 
-        const pushResult = await pushLayerChanges(
-            geolibreApp,
-            fetch,
+        const pushResult = await pushEverything(
+            fakeApp,
             viewerSession,
             loadedLayer,
         );
@@ -339,5 +386,88 @@ describe("editing an existing resource", () => {
         expect(pushResult.failures).toEqual([
             expect.stringContaining("HTTP 403"),
         ]);
+    });
+});
+
+describe("tiles that gain or lose all their geometry", () => {
+    const fakeApp = new FakeGeoLibreApp();
+
+    it("adds a tile to a resource without geometry in a node, then deletes it", async () => {
+        const resourceInstanceId =
+            await findResourceWithoutExtent(editorSession);
+        const emptyLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+            EXTENT_NODE,
+        );
+        expect(emptyLayer.baselineFeatures).toEqual([]);
+        fakeApp.setLayerFeatures(emptyLayer.layerId, [
+            drawnFeature(square(-0.15, 51.45)),
+        ]);
+
+        const addResult = await pushEverything(
+            fakeApp,
+            editorSession,
+            emptyLayer,
+            {
+                kind: "existing-resource",
+                resourceInstanceId,
+                name: "Attach target",
+            },
+        );
+        expect(addResult.failures).toEqual([]);
+        expect(addResult.savedTileCount).toBe(1);
+
+        const extentLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+            EXTENT_NODE,
+        );
+        expect(extentLayer.baselineFeatures).toHaveLength(1);
+
+        fakeApp.setLayerFeatures(extentLayer.layerId, []);
+        const deleteResult = await pushEverything(
+            fakeApp,
+            editorSession,
+            extentLayer,
+        );
+        expect(deleteResult.failures).toEqual([]);
+        expect(deleteResult.deletedTileCount).toBe(1);
+
+        const finalLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+            EXTENT_NODE,
+        );
+        expect(finalLayer.baselineFeatures).toEqual([]);
+    });
+});
+
+describe("finding a resource to attach to", () => {
+    it("finds a resource by name", async () => {
+        const resourceInstanceId = await findGeneratedResourceId(editorSession);
+        const [locationFeature] = (
+            await fetchNodeFeatures(
+                fetch,
+                editorSession,
+                LOCATION_NODE.nodeid,
+                {
+                    resourceInstanceIds: [resourceInstanceId],
+                },
+            )
+        ).features;
+        const name = String(locationFeature.properties?.primary_name);
+
+        const results = await searchResources(
+            fetch,
+            editorSession,
+            LOCATION_NODE.graph_id,
+            name,
+        );
+
+        expect(results).toContainEqual({ resourceInstanceId, name });
     });
 });

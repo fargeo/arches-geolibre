@@ -53,14 +53,15 @@ class Command(BaseCommand):
 
     def import_test_model(self):
         # Re-importing would replace the graph and cascade-delete its resources.
-        if Graph.objects.filter(pk=GRAPH_ID).exists():
-            self.stdout.write("The GeoLibre Test Asset model is already loaded.")
-            return
-        with open(GRAPH_FILE) as graph_file:
-            graphs = JSONDeserializer().deserialize(graph_file)["graph"]
-        import_graph(graphs, overwrite_graphs=True)
-        Graph.objects.get(pk=GRAPH_ID).publish(notes="arches-geolibre test setup")
-        self.stdout.write("Imported and published the GeoLibre Test Asset model.")
+        if not Graph.objects.filter(pk=GRAPH_ID).exists():
+            with open(GRAPH_FILE) as graph_file:
+                graphs = JSONDeserializer().deserialize(graph_file)["graph"]
+            import_graph(graphs, overwrite_graphs=True)
+            Graph.objects.get(pk=GRAPH_ID).publish(notes="arches-geolibre test setup")
+            self.stdout.write("Imported and published the GeoLibre Test Asset model.")
+        # Search, tile deletion and Arches' resource editor all skip inactive models.
+        Graph.objects.filter(pk=GRAPH_ID).update(is_active=True)
+        self.stdout.write("The GeoLibre Test Asset model is active.")
 
     def create_spatial_view(self):
         SpatialView.objects.update_or_create(
