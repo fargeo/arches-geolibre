@@ -33,10 +33,24 @@ instance, running each suite, and testing in GeoLibre Desktop.
 
 To try the plugin on an existing Arches 8.2 instance, see
 [docs/testing-on-your-arches.md](docs/testing-on-your-arches.md).
-`npm run package:zip` builds the zip to install in GeoLibre. Pushing a `v*`
-tag that matches `plugin.json`'s version publishes the plugin to GitHub Pages
-(`.github/workflows/publish-plugin.yml`), for GeoLibre on the web to install
-from `https://fargeo.github.io/arches-geolibre/plugin.json`.
+`npm run package:zip` builds the zip to install in GeoLibre.
+
+**Try it in your browser:**
+[GeoLibre with the plugin preinstalled](https://fargeo.github.io/arches-geolibre/app/)
+(landing page: <https://fargeo.github.io/arches-geolibre/>).
+
+Each push to `main`, or a `v*` tag matching `plugin.json`'s version,
+publishes that site to GitHub Pages (`.github/workflows/publish-site.yml`,
+built by `scripts/build-pages-site.sh`):
+
+- `/app/`: GeoLibre's web app with the plugin bundled in;
+- `/plugin.json` and `/dist/`: the plugin, for adding to any GeoLibre by
+  manifest URL;
+- `/arches-geolibre.zip`: the plugin, for **Install from file**.
+
+The landing page comes from `pages/index.html`. Arches instances need
+`https://fargeo.github.io` in `CORS_ALLOWED_ORIGINS` to be used from the hosted
+app.
 
 ## What it does
 

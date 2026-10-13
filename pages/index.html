@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+        />
+        <title>Arches for GeoLibre</title>
+        <meta
+            name="description"
+            content="Edit Arches resource geometry in GeoLibre, in your browser."
+        />
+        <style>
+            :root {
+                color-scheme: light dark;
+                --background: #f8fafc;
+                --surface: #ffffff;
+                --text: #0f172a;
+                --muted: #475569;
+                --border: #e2e8f0;
+                --accent: #c2410c;
+                --accent-text: #ffffff;
+                --code-background: #f1f5f9;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --background: #0f172a;
+                    --surface: #1e293b;
+                    --text: #e2e8f0;
+                    --muted: #94a3b8;
+                    --border: #334155;
+                    --accent: #fb923c;
+                    --accent-text: #0f172a;
+                    --code-background: #0f172a;
+                }
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--background);
+                color: var(--text);
+                font:
+                    1rem/1.6 system-ui,
+                    sans-serif;
+            }
+            main {
+                max-width: 46rem;
+                margin: 0 auto;
+                padding: 3rem 1rem 4rem;
+            }
+            h1 {
+                margin: 0 0 0.5rem;
+                font-size: 2rem;
+                line-height: 1.2;
+            }
+            h2 {
+                margin: 2.5rem 0 0.75rem;
+                font-size: 1.25rem;
+            }
+            p,
+            li {
+                color: var(--muted);
+            }
+            strong {
+                color: var(--text);
+            }
+            a {
+                color: var(--accent);
+            }
+            .lead {
+                font-size: 1.125rem;
+            }
+            .launch {
+                display: inline-block;
+                margin: 1.5rem 0 0.5rem;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.5rem;
+                background: var(--accent);
+                color: var(--accent-text);
+                font-weight: 600;
+                text-decoration: none;
+            }
+            .launch:focus-visible {
+                outline: 0.1875rem solid var(--text);
+                outline-offset: 0.1875rem;
+            }
+            .card {
+                padding: 1rem 1.25rem;
+                border: 0.0625rem solid var(--border);
+                border-radius: 0.5rem;
+                background: var(--surface);
+            }
+            code {
+                padding: 0.1rem 0.3rem;
+                border-radius: 0.25rem;
+                background: var(--code-background);
+                color: var(--text);
+                font-size: 0.875em;
+                overflow-wrap: anywhere;
+            }
+            ol,
+            ul {
+                padding-inline-start: 1.25rem;
+            }
+            footer {
+                margin-top: 3rem;
+                font-size: 0.875rem;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>Arches for GeoLibre</h1>
+            <p class="lead">
+                Load, edit and create
+                <a href="https://www.archesproject.org/">Arches</a> resource
+                geometry in <a href="https://geolibre.app/">GeoLibre</a>,
+                including resources that have no geometry yet.
+            </p>
+            <a
+                class="launch"
+                href="app/"
+                >Open GeoLibre with the Arches plugin</a
+            >
+            <p>
+                Then open <strong>Plugins → Installed → Arches</strong> and sign
+                in with your Arches address. Nothing is installed: it runs in
+                your browser.
+            </p>
+
+            <h2>Before you sign in</h2>
+            <div class="card">
+                <p>
+                    This preview works with <strong>Arches 8.2</strong>,
+                    including fixes still in review.
+                    <a
+                        href="https://github.com/fargeo/arches-geolibre/blob/main/docs/arches-compatibility.md"
+                        >Which Arches to use</a
+                    >
+                    explains what your instance needs. An Arches admin also
+                    needs to:
+                </p>
+                <ul>
+                    <li>
+                        serve Arches over <strong>HTTPS</strong>: browsers block
+                        this page from reaching plain-HTTP addresses;
+                    </li>
+                    <li>
+                        add <code>https://fargeo.github.io</code> to
+                        <code>CORS_ALLOWED_ORIGINS</code> in Arches' settings;
+                    </li>
+                    <li>
+                        set up sign-in for the plugin, as described in
+                        <a
+                            href="https://github.com/fargeo/arches-geolibre/blob/main/docs/testing-on-your-arches.md"
+                            >Trying the plugin with your own Arches</a
+                        >.
+                    </li>
+                </ul>
+            </div>
+
+            <h2>Use it in another GeoLibre</h2>
+            <p>
+                In GeoLibre Desktop or another GeoLibre site, open
+                <strong>Settings → Manage Plugins → Settings</strong>, then
+                either:
+            </p>
+            <ul>
+                <li>
+                    add the manifest URL
+                    <code
+                        >https://fargeo.github.io/arches-geolibre/plugin.json</code
+                    >; or
+                </li>
+                <li>
+                    download
+                    <a href="arches-geolibre.zip">arches-geolibre.zip</a> and
+                    choose it under <strong>Install from file</strong>.
+                </li>
+            </ul>
+
+            <footer>
+                <p>
+                    Arches plugin {{PLUGIN_VERSION}}, with GeoLibre
+                    {{GEOLIBRE_VERSION}}. The plugin is
+                    <a href="https://github.com/fargeo/arches-geolibre"
+                        >open source</a
+                    >
+                    under the AGPL-3.0. GeoLibre is © Qiusheng Wu, under the
+                    <a href="app/GEOLIBRE-LICENSE">MIT licence</a>; this site
+                    hosts an unmodified build of it.
+                </p>
+            </footer>
+        </main>
+    </body>
+</html>

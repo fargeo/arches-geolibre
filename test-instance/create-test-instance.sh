@@ -24,8 +24,9 @@ PACKAGE_DIR="$PROJECT_ROOT/$PROJECT_NAME"
 SUPPORT_APP_SOURCE="$(cd "$(dirname "$0")" && pwd)/geolibre_test_support"
 OAUTH_CLIENT_ID="arches-geolibre-test"
 OAUTH_DEVICE_CLIENT_ID="arches-geolibre-test-device"
-# GeoLibre's web preview (Playwright suite) and dev servers.
-CORS_ORIGINS='["http://localhost:4173", "http://localhost:5173"]'
+# GeoLibre's web preview (Playwright suite) and dev servers, and the hosted
+# copy on GitHub Pages.
+CORS_ORIGINS='["http://localhost:4173", "http://localhost:5173", "https://fargeo.github.io"]'
 
 if [ ! -d "$PACKAGE_DIR" ]; then
     mkdir -p "$PROJECT_ROOT"

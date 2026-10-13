@@ -90,6 +90,11 @@ cd ~/projects/arches_geolibre_test
 ~/arches-geolibre-env/bin/python manage.py runserver 8002
 ```
 
+Its CORS settings allow GeoLibre's local web builds and the hosted copy at
+`https://fargeo.github.io/arches-geolibre/app/`, so the hosted app can sign in
+to `http://localhost:8002`. Browsers allow an HTTPS page to reach `localhost`,
+though some ask first for permission to access your local network.
+
 Port 8002 lets it run beside another Arches project on the default port 8000,
 and is where the test suites look for it (`ARCHES_TEST_URL` changes that). The API is all
 the plugin needs. To browse resources in Arches' own UI, build its frontend

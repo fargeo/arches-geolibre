@@ -50,7 +50,11 @@ includes and how to install it.
    to the project's settings and restart Arches:
 
     ```python
-    CORS_ALLOWED_ORIGINS = ["https://web.geolibre.app", "https://geolibre.app"]
+    CORS_ALLOWED_ORIGINS = [
+        "https://fargeo.github.io",  # GeoLibre with the plugin preinstalled
+        "https://web.geolibre.app",
+        "https://geolibre.app",
+    ]
     ```
 
     Add the address of any self-hosted GeoLibre too. Arches must be served
@@ -74,6 +78,13 @@ includes and how to install it.
 4. Open **Plugins → Installed → Arches**. The panel docks beside Layers.
 
 ### GeoLibre on the web
+
+The quickest way to try it is
+[GeoLibre with the plugin preinstalled](https://fargeo.github.io/arches-geolibre/app/),
+hosted with this repository: open it, then **Plugins → Installed → Arches**.
+Nothing needs installing.
+
+To add the plugin to GeoLibre's own site instead:
 
 1. Open [web.geolibre.app](https://web.geolibre.app), then **Settings →
    Manage Plugins**, and switch to its **Settings** tab.
