@@ -47,12 +47,17 @@ export interface NodeValueResponse {
 
 export type ArchesLayerSource =
     | { kind: "node" }
-    | { kind: "spatial-view"; spatialViewId: string; slug: string };
+    | { kind: "spatial-view"; spatialViewId: string; slug: string }
+    | { kind: "worklist"; resourceInstanceIds: string[] };
 
 export interface LoadedArchesLayer {
+    /** Stays the same when the GeoLibre layer is replaced, unlike layerId. */
+    key: string;
     layerId: string;
     node: ArchesGeometryNode;
     source: ArchesLayerSource;
     isWritable: boolean;
     baselineFeatures: Feature<Geometry | null>[];
+    /** Bumped when the plugin changes the layer's features itself. */
+    contentRevision: number;
 }

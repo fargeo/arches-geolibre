@@ -140,24 +140,34 @@ If you add test users after building the instance, reindex first (see
 
 ## Recording the demo
 
-`npm run demo:record` records a short video of the plugin in GeoLibre's web
-build:
+`npm run demo:record` records two short videos of the plugin in GeoLibre's
+web build, into the git-ignored `demo/` folder (as MP4, or WebM if `ffmpeg`
+isn't installed):
 
-1. sign in;
-2. add the Extent layer and restyle it;
-3. find Kiln 24038 with Select by Expression and zoom to it;
-4. reshape its geometry;
-5. push the change.
+- **`arches-geolibre-demo.mp4`** (`editing`):
+    1. sign in;
+    2. add the Extent layer and restyle it;
+    3. find Kiln 24038 with Select by Expression and zoom to it;
+    4. reshape its geometry;
+    5. push the change.
+- **`resource-first-editing.mp4`** (`resource-first`), the gap in tools built
+  on spatial views, such as the Esri add-in and the QGIS plugin:
+    1. show that Tannery 90001, which has no geometry, isn't in the spatial
+       view;
+    2. start a worklist from **Edit resources → Missing geometry**;
+    3. draw the tannery's outline;
+    4. use a surveyor's outline from a GeoJSON file
+       (`e2e/fixtures/foundry-survey.geojson`) for Foundry 90002;
+    5. push both, and watch the missing count drop.
 
-It writes `demo/arches-geolibre-demo.mp4`, or WebM if `ffmpeg` isn't
-installed. The `demo/` folder is git-ignored.
+`npm run demo:record -- resource-first` records just one.
 
 - It needs the Arches test instance on :8002 and a GeoLibre checkout prepared
   as for the browser suite (`scripts/prepare-geolibre-web.sh`).
 - It rebuilds the plugin into that checkout's web build and starts the preview
   server if it isn't running. Set `DEMO_SKIP_BUILD=1` to reuse the current
   build.
-- The edit really reaches Arches, so the script restores the resource's
-  geometry afterwards, even if the recording fails part-way.
+- The edits really reach Arches, so the script undoes them afterwards, even
+  if the recording fails part-way.
 - Set `DEMO_RESOURCE_NAME` to edit another Extent polygon. `ARCHES_TEST_URL`,
   `GEOLIBRE_DIR` and `GEOLIBRE_PORT` work as for the browser suite.

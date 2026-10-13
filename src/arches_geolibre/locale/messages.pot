@@ -11,6 +11,7 @@ msgid "Awaiting review (read only)"
 msgstr ""
 
 #: src/arches_geolibre/components/AwaitingReviewSection.vue:106
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:33
 msgid "Awaiting review"
 msgstr ""
 
@@ -66,6 +67,7 @@ msgid "Cancel"
 msgstr ""
 
 #: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:35
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:63
 msgid "Add"
 msgstr ""
 
@@ -179,6 +181,211 @@ msgstr ""
 msgid "Your Arches session has expired. Sign in again."
 msgstr ""
 
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:71
+msgid "Copied 1 feature as %{name}'s geometry."
+msgid_plural "Copied %{count} features as %{name}'s geometry."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:78
+msgid "%{count} had no geometry Arches can store and were skipped."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:90
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/ResourceFinder.vue:48
+msgid "Save or cancel the edit session on the worklist layer first."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:115
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:43
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:85
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:154
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:295
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:58
+msgid "Unnamed resource"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:121
+msgid "You can't edit this resource."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:125
+msgid "New geometry is ready. Push it from Pending changes below, or go on to the next resource."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:132
+msgid "To edit its %{node}, open ⋯ → Edit geometry on “%{layer}”, change it, then save the edit session."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:140
+msgid "It has no %{node} yet. Open ⋯ → Edit geometry on “%{layer}” and draw it, then save the edit session. Whatever you draw goes to this resource. Or select features in another layer and use them."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:149
+msgid "Zoom to"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:157
+msgid "Use the selected feature"
+msgid_plural "Use the %{count} selected features"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:169
+msgid "Skip"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/CurrentResource.vue:176
+msgid "Next"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/NodePicker.vue:64
+msgid "Choose a model and geometry"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/NodePicker.vue:65
+msgid "Model and geometry to edit"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/NodePicker.vue:69
+msgid "Start a worklist"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/NodePicker.vue:77
+msgid "You can't edit geometry in any resource model on this instance."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MapSelectionPicker.vue:52
+msgid "%{count} %{model} resource selected on the map."
+msgid_plural "%{count} %{model} resources selected on the map."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MapSelectionPicker.vue:64
+msgid "Add selected to the worklist"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MapSelectionPicker.vue:73
+msgid "Select features of %{model} resources in an Arches layer to add those resources."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MissingGeometryList.vue:41
+msgid "More than %{count} resources have no %{node}."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MissingGeometryList.vue:45
+msgid "%{count} resource has no %{node}."
+msgid_plural "%{count} resources have no %{node}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MissingGeometryList.vue:66
+msgid "Filter by name"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/MissingGeometryList.vue:67
+msgid "Filter resources with no geometry by name"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:47
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:40
+msgid "No geometry"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:52
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:39
+msgid "Has geometry"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:59
+msgid "In worklist"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:65
+msgid "Add %{name} to the worklist"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceResultList.vue:79
+msgid "Add all %{count}"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceSearch.vue:29
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:143
+msgid "Search by name"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResourceSearch.vue:30
+msgid "Search resources by name"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResultPager.vue:17
+msgid "Previous"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResultPager.vue:24
+msgid "Page %{page}"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/components/ResultPager.vue:26
+msgid "Next page"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/ResourceFinder.vue:30
+msgid "Missing geometry"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/ResourceFinder.vue:31
+msgid "Search"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/ResourceFinder.vue:32
+msgid "From the map"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/ResourceFinder/ResourceFinder.vue:66
+msgid "Find resources"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:25
+msgid "Can't edit"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:28
+msgid "Ready to push"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:32
+msgid "Saved"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:36
+msgid "Skipped"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:69
+msgid "Worklist (%{count})"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/components/WorklistEntries.vue:100
+msgid "Remove %{name} from the worklist"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/EditResourcesSection.vue:39
+msgid "Edit resources"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/EditResourcesSection.vue:43
+msgid "Pick resources and give them geometry, or edit what they have, including resources with no geometry yet."
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/EditResourcesSection.vue:61
+msgid "Finish"
+msgstr ""
+
+#: src/arches_geolibre/components/EditResourcesSection/EditResourcesSection.vue:65
+msgid "Push or untick the pending changes first."
+msgstr ""
+
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue:34
 msgid "Edited"
 msgstr ""
@@ -204,7 +411,7 @@ msgid "Won't be pushed; Arches keeps its current geometry."
 msgstr ""
 
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:39
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:235
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:294
 msgid "New resource"
 msgstr ""
 
@@ -220,10 +427,6 @@ msgstr ""
 msgid "Attach to %{name}"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:143
-msgid "Search by name"
-msgstr ""
-
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:144
 msgid "Search for a resource by name"
 msgstr ""
@@ -232,57 +435,51 @@ msgstr ""
 msgid "Use the selected feature: %{name}"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:154
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:236
-#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:58
-msgid "Unnamed resource"
-msgstr ""
-
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:164
 msgid "Or select one of the resource's features on the map."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:237
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:296
 msgid "%{resource} wasn't saved: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:245
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:304
 msgid "Saved %{tileCount} tile(s); created %{resourceCount} resource(s)."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:255
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:314
 msgid "Deleted %{count} tile(s) left without geometry."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:262
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:321
 msgid "Cleared the geometry of %{count} tile(s) that couldn't be deleted."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:270
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:329
 msgid "Skipped changes to %{names}: changed in Arches since you loaded the layer. The layer now shows the current version; redo those edits if they're still needed."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:276
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:335
 msgid "a resource"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:285
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:344
 msgid "%{count} edit(s) await review in Arches and won't show on the map until approved."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:311
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:370
 msgid "Check"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:318
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:377
 msgid "Push to Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:327
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:386
 msgid "%{edited} edited, %{created} new, %{deleted} deleted"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:337
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:396
 msgid "Read only"
 msgstr ""
 

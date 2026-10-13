@@ -229,13 +229,15 @@ function sameArchesFeature(
 
 /**
  * Pending changes for a fresh diff, keeping what the user already chose for
- * changes that are still there. Changes to resources the user can't edit are
- * excluded and can't be included.
+ * changes that are still there. Newly drawn features go to `defaultTarget`.
+ * Changes to resources the user can't edit are excluded and can't be
+ * included.
  */
 export function reconcilePendingChanges(
     previousChanges: PendingChange[],
     changes: FeatureChange[],
     isBlocked: (pendingChange: PendingChange) => boolean = () => false,
+    defaultTarget: ChangeTarget = { kind: "new-resource" },
 ): PendingChange[] {
     const previousByKey = new Map(
         previousChanges.map((pendingChange) => [
@@ -250,7 +252,7 @@ export function reconcilePendingChanges(
             key,
             change,
             isIncluded: previous?.isIncluded ?? true,
-            target: previous?.target ?? { kind: "new-resource" },
+            target: previous?.target ?? defaultTarget,
         };
         if (isBlocked(pendingChange)) {
             pendingChange.isIncluded = false;

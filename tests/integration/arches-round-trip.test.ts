@@ -139,11 +139,13 @@ describe("creating a resource", () => {
         fakeApp.setLayerFeatures(layerId, [drawnFeature(square(-0.1, 51.5))]);
 
         const pushResult = await pushEverything(fakeApp, editorSession, {
+            key: layerId,
             layerId,
             node: LOCATION_NODE,
             source: { kind: "node" },
             isWritable: true,
             baselineFeatures: [],
+            contentRevision: 0,
         });
 
         expect(pushResult.failures).toEqual([]);

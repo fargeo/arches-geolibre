@@ -1,4 +1,4 @@
-import type { FeatureCollection, Geometry } from "geojson";
+import type { Feature, FeatureCollection, Geometry } from "geojson";
 
 import type {
     ArchesGeometryNode,
@@ -232,6 +232,44 @@ export async function deleteTile(
     return response.ok;
 }
 
+/**
+ * A tile of the resource that has room for this node's geometry but none
+ * yet: one in the node's nodegroup whose value is empty, as left when
+ * geometry is cleared or a card was filled in without it. Adding geometry
+ * should fill that tile. Without a tileid, /api/node_value always adds a new
+ * tile, leaving the empty one beside it (and a nodegroup that allows only one
+ * tile would refuse it).
+ */
+export async function fetchEmptyGeometryTileId(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    resourceInstanceId: string,
+    node: Pick<ArchesGeometryNode, "nodeid" | "nodegroup_id">,
+): Promise<string | null> {
+    const response = await authorizedFetch(
+        fetchImplementation,
+        session,
+        `/resources/${resourceInstanceId}?format=arches-json`,
+    );
+    await assertOk(response, "Could not read the resource");
+    const resource = (await response.json()) as {
+        tiles: {
+            tileid: string;
+            nodegroup_id: string;
+            data: Record<string, unknown>;
+        }[];
+    };
+    const emptyTile = resource.tiles.find((tile) => {
+        if (tile.nodegroup_id !== node.nodegroup_id) {
+            return false;
+        }
+        const value = tile.data[node.nodeid] as
+            FeatureCollection<Geometry> | null | undefined;
+        return !value || value.features.length === 0;
+    });
+    return emptyTile?.tileid ?? null;
+}
+
 export interface ArchesTile {
     tileid: string;
     resourceinstance_id: string;
@@ -267,41 +305,76 @@ export interface ResourceSearchResult {
 }
 
 /** Resources of one model whose names match `text`, through Arches search. */
-export async function searchResources(
+export interface ResourceSearchPage {
+    results: ResourceSearchResult[];
+    /** Arches' search index stops counting at 10,000. */
+    totalCount: number;
+    isTotalCapped: boolean;
+    hasNextPage: boolean;
+}
+
+/**
+ * One page of a resource model's resources, optionally matching a name and
+ * optionally only those with no geometry in a node: Arches' advanced search
+ * treats a missing tile and an empty one alike.
+ */
+export async function searchResourcePage(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
-    graphId: string,
-    text: string,
-    signal?: AbortSignal,
-): Promise<ResourceSearchResult[]> {
+    options: {
+        graphId: string;
+        text?: string;
+        page?: number;
+        missingGeometryNodeId?: string;
+        signal?: AbortSignal;
+    },
+): Promise<ResourceSearchPage> {
     const query = new URLSearchParams({
-        "paging-filter": "1",
-        "term-filter": JSON.stringify([
-            {
-                inverted: false,
-                type: "string",
-                context: "",
-                context_label: "",
-                id: text,
-                text,
-                value: text,
-                selected: true,
-            },
-        ]),
+        "paging-filter": String(options.page ?? 1),
         "resource-type-filter": JSON.stringify([
-            { graphid: graphId, inverted: false },
+            { graphid: options.graphId, inverted: false },
         ]),
     });
+    const text = options.text?.trim();
+    if (text) {
+        query.set(
+            "term-filter",
+            JSON.stringify([
+                {
+                    inverted: false,
+                    type: "string",
+                    context: "",
+                    context_label: "",
+                    id: text,
+                    text,
+                    value: text,
+                    selected: true,
+                },
+            ]),
+        );
+    }
+    if (options.missingGeometryNodeId) {
+        query.set(
+            "advanced-search",
+            JSON.stringify([
+                {
+                    op: "and",
+                    [options.missingGeometryNodeId]: { op: "null", val: "" },
+                },
+            ]),
+        );
+    }
     const response = await authorizedFetch(
         fetchImplementation,
         session,
         `/search/resources?${query}`,
-        { signal },
+        { signal: options.signal },
     );
     await assertOk(response, "Could not search Arches");
     const searchResponse = (await response.json()) as {
         results: {
             hits: {
+                total: number | { value: number; relation: string };
                 hits: {
                     _id: string;
                     _source: {
@@ -310,11 +383,67 @@ export async function searchResources(
                 }[];
             };
         };
+        "paging-filter"?: { paginator?: { has_next?: boolean } };
     };
-    return searchResponse.results.hits.hits.map((hit) => ({
-        resourceInstanceId: hit._id,
-        name: readDisplayName(hit._source.displayname),
-    }));
+    const { total, hits } = searchResponse.results.hits;
+    return {
+        results: hits.map((hit) => ({
+            resourceInstanceId: hit._id,
+            name: readDisplayName(hit._source.displayname),
+        })),
+        totalCount: typeof total === "number" ? total : total.value,
+        isTotalCapped: typeof total !== "number" && total.relation === "gte",
+        hasNextPage:
+            searchResponse["paging-filter"]?.paginator?.has_next ?? false,
+    };
+}
+
+export async function searchResources(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    graphId: string,
+    text: string,
+    signal?: AbortSignal,
+): Promise<ResourceSearchResult[]> {
+    const searchPage = await searchResourcePage(fetchImplementation, session, {
+        graphId,
+        text,
+        signal,
+    });
+    return searchPage.results;
+}
+
+/**
+ * Each resource's features in a node. A resource missing from the result has
+ * no geometry there that the user can see.
+ */
+export async function fetchGeometryByResource(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    nodeId: string,
+    resourceInstanceIds: string[],
+): Promise<Map<string, Feature<Geometry>[]>> {
+    const featuresByResource = new Map<string, Feature<Geometry>[]>();
+    if (resourceInstanceIds.length === 0) {
+        return featuresByResource;
+    }
+    const featureCollection = await fetchNodeFeatures(
+        fetchImplementation,
+        session,
+        nodeId,
+        { resourceInstanceIds },
+    );
+    for (const feature of featureCollection.features) {
+        const resourceInstanceId = feature.properties?.resourceinstanceid;
+        if (typeof resourceInstanceId !== "string") {
+            continue;
+        }
+        featuresByResource.set(resourceInstanceId, [
+            ...(featuresByResource.get(resourceInstanceId) ?? []),
+            feature,
+        ]);
+    }
+    return featuresByResource;
 }
 
 function readDisplayName(displayName: string | { value: string }[]): string {

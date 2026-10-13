@@ -21,8 +21,8 @@ const workspace = useArchesWorkspace();
         </small>
         <LayerChanges
             v-for="loadedLayer in workspace.loadedLayers"
-            :key="loadedLayer.layerId"
-            :layer-id="loadedLayer.layerId"
+            :key="loadedLayer.key"
+            :layer-key="loadedLayer.key"
         />
     </section>
 </template>

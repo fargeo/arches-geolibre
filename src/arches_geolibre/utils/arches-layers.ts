@@ -1,5 +1,6 @@
 import {
     deleteTile,
+    fetchEmptyGeometryTileId,
     fetchNodeFeatures,
     fetchTile,
     saveTileGeometry,
@@ -44,6 +45,7 @@ export interface PushResult {
 }
 
 export interface PushFailure {
+    resourceInstanceId: string | null;
     resourceName: string | null;
     isNewResource: boolean;
     error: unknown;
@@ -52,6 +54,8 @@ export interface PushFailure {
 export interface LoadArchesLayerOptions {
     source: ArchesLayerSource;
     isWritable: boolean;
+    /** Keeps a reloaded layer's identity; a new layer gets a new key. */
+    key?: string;
     signal?: AbortSignal;
     onBytesReceived?: (byteCount: number) => void;
 }
@@ -68,24 +72,35 @@ export function archesSourcePath(
     source: ArchesLayerSource,
 ): string {
     const host = new URL(session.instanceUrl).host;
-    return source.kind === "spatial-view"
-        ? `arches://${host}/spatialviews/${source.slug}`
-        : `arches://${host}/nodes/${nodeId}`;
+    switch (source.kind) {
+        case "spatial-view":
+            return `arches://${host}/spatialviews/${source.slug}`;
+        case "worklist":
+            return `arches://${host}/nodes/${nodeId}/worklist`;
+        default:
+            return `arches://${host}/nodes/${nodeId}`;
+    }
 }
 
 export function archesLayerName(
     node: ArchesGeometryNode,
     source: ArchesLayerSource,
 ): string {
-    return source.kind === "spatial-view"
-        ? source.slug
-        : `${node.resourcemodelname}: ${node.name}`;
+    switch (source.kind) {
+        case "spatial-view":
+            return source.slug;
+        case "worklist":
+            return `${node.resourcemodelname}: ${node.name} (worklist)`;
+        default:
+            return `${node.resourcemodelname}: ${node.name}`;
+    }
 }
 
 /**
  * Loads a geometry node into a new GeoLibre layer, styled as Arches styles
  * it, and zooms to it. A spatial view loads its geometry node: no Arches
- * endpoint reads a view's attribute columns yet.
+ * endpoint reads a view's attribute columns yet. A worklist layer loads only
+ * its resources' geometry, which may be none at all.
  */
 export async function loadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
@@ -95,15 +110,62 @@ export async function loadArchesLayer(
     options: LoadArchesLayerOptions,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
-            signal: options.signal,
-            onBytesReceived: options.onBytesReceived,
-        }),
+        await fetchSourceFeatures(fetchImplementation, session, node, options),
     );
+    const layerId = addStyledLayer(
+        geolibreApp,
+        session,
+        node,
+        options.source,
+        taggedCollection.features,
+    );
+    const bounds = featureBounds(taggedCollection.features);
+    if (bounds) {
+        geolibreApp.fitBounds?.(bounds);
+    }
+    return {
+        key: options.key ?? crypto.randomUUID(),
+        layerId,
+        node,
+        source: options.source,
+        isWritable: options.isWritable,
+        baselineFeatures: structuredClone(taggedCollection.features),
+        contentRevision: 0,
+    };
+}
+
+function fetchSourceFeatures(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    node: ArchesGeometryNode,
+    options: LoadArchesLayerOptions,
+): Promise<FeatureCollection<Geometry>> {
+    if (options.source.kind === "worklist") {
+        const { resourceInstanceIds } = options.source;
+        return resourceInstanceIds.length === 0
+            ? Promise.resolve({ type: "FeatureCollection", features: [] })
+            : fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
+                  resourceInstanceIds,
+                  signal: options.signal,
+              });
+    }
+    return fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
+        signal: options.signal,
+        onBytesReceived: options.onBytesReceived,
+    });
+}
+
+function addStyledLayer(
+    geolibreApp: GeoLibreAppAPI,
+    session: ArchesSession,
+    node: ArchesGeometryNode,
+    source: ArchesLayerSource,
+    features: Feature<Geometry | null>[],
+): string {
     const layerId = geolibreApp.addGeoJsonLayer(
-        archesLayerName(node, options.source),
-        taggedCollection,
-        archesSourcePath(session, node.nodeid, options.source),
+        archesLayerName(node, source),
+        { type: "FeatureCollection", features } as FeatureCollection,
+        archesSourcePath(session, node.nodeid, source),
     );
     const styleResult = geolibreApp.importLayerStyle?.(
         layerId,
@@ -115,16 +177,40 @@ export async function loadArchesLayer(
             styleResult.warnings,
         );
     }
-    const bounds = featureBounds(taggedCollection.features);
-    if (bounds) {
-        geolibreApp.fitBounds?.(bounds);
-    }
+    return layerId;
+}
+
+/**
+ * Swaps a layer's features without a round trip to Arches, keeping its key
+ * so its pending changes carry over. The plugin API can't update a layer in
+ * place, so the GeoLibre layer is replaced.
+ */
+export function replaceArchesLayerFeatures(
+    geolibreApp: GeoLibreAppAPI,
+    session: ArchesSession,
+    loadedLayer: LoadedArchesLayer,
+    update: {
+        features: Feature<Geometry | null>[];
+        baselineFeatures?: Feature<Geometry | null>[];
+        source?: ArchesLayerSource;
+    },
+): LoadedArchesLayer {
+    const source = update.source ?? loadedLayer.source;
+    const layerId = addStyledLayer(
+        geolibreApp,
+        session,
+        loadedLayer.node,
+        source,
+        update.features,
+    );
+    removeLayer(geolibreApp, loadedLayer.layerId);
     return {
+        ...loadedLayer,
         layerId,
-        node,
-        source: options.source,
-        isWritable: options.isWritable,
-        baselineFeatures: structuredClone(taggedCollection.features),
+        source,
+        baselineFeatures:
+            update.baselineFeatures ?? loadedLayer.baselineFeatures,
+        contentRevision: loadedLayer.contentRevision + 1,
     };
 }
 
@@ -217,6 +303,15 @@ export async function pushLayerChanges(
                 continue;
             }
 
+            const emptyTileId =
+                operation.kind === "add-tile"
+                    ? await fetchEmptyGeometryTileId(
+                          fetchImplementation,
+                          session,
+                          operation.resourceInstanceId,
+                          loadedLayer.node,
+                      )
+                    : null;
             const savedTile = await saveTileGeometry(
                 fetchImplementation,
                 session,
@@ -227,9 +322,13 @@ export async function pushLayerChanges(
                     ...(operation.kind === "save-tile" && {
                         tileId: operation.tileId,
                     }),
-                    ...(operation.kind === "add-tile" && {
-                        resourceInstanceId: operation.resourceInstanceId,
-                    }),
+                    ...(operation.kind === "add-tile" &&
+                        (emptyTileId
+                            ? { tileId: emptyTileId }
+                            : {
+                                  resourceInstanceId:
+                                      operation.resourceInstanceId,
+                              })),
                 },
             );
             if (operation.kind === "create-resource") {
@@ -336,15 +435,18 @@ function toPushFailure(
 ): PushFailure {
     switch (operation.kind) {
         case "save-tile":
-        case "delete-tile":
+        case "delete-tile": {
+            const { conflict } = loadedTileFeatures(
+                loadedFeatures,
+                operation.tileId,
+            );
             return {
-                resourceName: loadedTileFeatures(
-                    loadedFeatures,
-                    operation.tileId,
-                ).conflict.resourceName,
+                resourceInstanceId: conflict.resourceInstanceId,
+                resourceName: conflict.resourceName,
                 isNewResource: false,
                 error,
             };
+        }
         case "add-tile": {
             const resourceProperties = loadedFeatures.find(
                 (feature) =>
@@ -352,6 +454,7 @@ function toPushFailure(
                     operation.resourceInstanceId,
             )?.properties;
             return {
+                resourceInstanceId: operation.resourceInstanceId,
                 resourceName:
                     typeof resourceProperties?.primary_name === "string"
                         ? resourceProperties.primary_name
@@ -361,7 +464,12 @@ function toPushFailure(
             };
         }
         case "create-resource":
-            return { resourceName: null, isNewResource: true, error };
+            return {
+                resourceInstanceId: null,
+                resourceName: null,
+                isNewResource: true,
+                error,
+            };
     }
 }
 
@@ -375,7 +483,7 @@ export async function reloadArchesLayer(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     loadedLayer: Pick<LoadedArchesLayer, "layerId" | "node" | "source"> &
-        Partial<Pick<LoadedArchesLayer, "isWritable">>,
+        Partial<Pick<LoadedArchesLayer, "isWritable" | "key">>,
     options: { afterPush?: boolean } = {},
 ): Promise<LoadedArchesLayer> {
     if (options.afterPush) {
@@ -389,6 +497,7 @@ export async function reloadArchesLayer(
         {
             source: loadedLayer.source,
             isWritable: loadedLayer.isWritable ?? true,
+            key: loadedLayer.key,
         },
     );
     removeLayer(geolibreApp, loadedLayer.layerId);

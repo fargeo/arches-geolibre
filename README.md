@@ -38,6 +38,17 @@ tag that matches `plugin.json`'s version publishes the plugin to GitHub Pages
 (`.github/workflows/publish-plugin.yml`), for GeoLibre on the web to install
 from `https://fargeo.github.io/arches-geolibre/plugin.json`.
 
+## What it does
+
+- Load Arches geometry nodes and spatial views as GeoLibre layers, styled as
+  in Arches.
+- Edit geometry with GeoLibre's editor and push it back, as provisional edits
+  for users who aren't reviewers, with checks that nobody else changed it
+  first.
+- **Resource-first editing:** pick resources, including those with no
+  geometry yet, which no spatial view can show, and draw their geometry, copy
+  it from another layer, or edit what they have.
+
 ## Arches requirements
 
 - Arches 8.2 with [#13011](https://github.com/archesproject/arches/pull/13011),

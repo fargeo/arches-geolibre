@@ -95,11 +95,13 @@ export async function loadResourceLayer(
     const layerId = crypto.randomUUID();
     fakeApp.setLayerFeatures(layerId, taggedCollection.features);
     return {
+        key: layerId,
         layerId,
         node,
         source: { kind: "node" },
         isWritable: true,
         baselineFeatures: structuredClone(taggedCollection.features),
+        contentRevision: 0,
     };
 }
 

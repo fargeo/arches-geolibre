@@ -118,6 +118,21 @@ read them, so it's off by default. On a shared computer, leave it off.
     - Then **Push to Arches**.
 4. Select features on the map to get **Edit in Arches** or **View in
    Arches** links.
+5. **To give resources geometry, including resources with none yet,** use
+   **Edit resources**:
+    - Choose a model and geometry node, then **Start a worklist**.
+    - Find resources under **Missing geometry** (every resource with no
+      geometry in that node), **Search** (by name), or **From the map** (the
+      resources of features you've selected).
+    - Work through the worklist one resource at a time:
+        - **Draw** it on the _(worklist)_ layer with **⋯ → Edit geometry**,
+          and save the edit session. Whatever you draw goes to the current
+          resource.
+        - Or select features in any other layer, such as a survey shapefile or
+          GPS track, and choose **Use the selected feature**.
+        - Or, for a resource that already has geometry, **Zoom to** it and
+          edit it.
+    - Choose **Next**, then push from **Pending changes**.
 
 If you're not a Resource Reviewer, your pushed edits wait for review. Until
 then, they're drawn in orange in an **Awaiting review** layer. That includes

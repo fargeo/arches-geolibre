@@ -24,19 +24,26 @@ from geolibre_test_support.constants import (
 # Greater London. Any small area works; this one has a useful basemap.
 DEFAULT_BOUNDS = (-0.51, 51.29, 0.33, 51.69)
 SITE_KINDS = ("Mill", "Chapel", "Barrow", "Bridge", "Warehouse", "Kiln", "Wharf")
+# Records with no geometry at all, as when sites are entered from documents
+# before anyone maps them. Numbered from 90001 and drawn from their own random
+# stream, so adding them never changes the located resources.
+UNLOCATED_KINDS = ("Tannery", "Brewery", "Foundry", "Pottery")
+UNLOCATED_FIRST_NUMBER = 90_001
 
 
 class Command(BaseCommand):
     help = (
         "Creates synthetic GeoLibre Test Asset resources: every resource gets a "
         "Location (a point, line or polygon, sometimes two features in one tile) "
-        "and about one in five also gets an Extent polygon."
+        "and about one in five also gets an Extent polygon. Unlocated resources "
+        "have a name but no geometry; half of them have an empty Location tile."
     )
 
     def add_arguments(self, parser):
         parser.add_argument("--count", type=int, default=50_000)
         parser.add_argument("--batch-size", type=int, default=2_000)
         parser.add_argument("--seed", type=int, default=42)
+        parser.add_argument("--unlocated", type=int, default=300)
 
     def handle(self, *args, **options):
         random_generator = random.Random(options["seed"])
@@ -47,25 +54,28 @@ class Command(BaseCommand):
         transaction_id = uuid.uuid4()
         permission_grants = resolve_permission_grants()
 
-        created_count = 0
-        while created_count < options["count"]:
-            batch_size = min(options["batch_size"], options["count"] - created_count)
-            resources = [
-                self.build_resource(
-                    random_generator,
-                    graph,
-                    initial_lifecycle_state,
-                    sequence_number=created_count + offset + 1,
-                )
-                for offset in range(batch_size)
-            ]
-            # New Arches projects deny access to resources without explicit
-            # object permissions, and bulk_save indexes those permissions, so
-            # they must exist before it runs.
-            grant_resource_permissions(resources, permission_grants)
-            Resource.bulk_save(resources, transaction_id=transaction_id)
-            created_count += batch_size
-            self.stdout.write(f"Created {created_count} of {options['count']}.")
+        self.create_resources(
+            options["count"],
+            options["batch_size"],
+            lambda sequence_number: self.build_resource(
+                random_generator, graph, initial_lifecycle_state, sequence_number
+            ),
+            permission_grants,
+            transaction_id,
+        )
+        unlocated_random_generator = random.Random(options["seed"] + 1)
+        self.create_resources(
+            options["unlocated"],
+            options["batch_size"],
+            lambda sequence_number: self.build_unlocated_resource(
+                unlocated_random_generator,
+                graph,
+                initial_lifecycle_state,
+                UNLOCATED_FIRST_NUMBER + sequence_number - 1,
+            ),
+            permission_grants,
+            transaction_id,
+        )
 
         # bulk_save skips the geometry table that vector tiles and spatial views read.
         with connection.cursor() as cursor:
@@ -74,39 +84,36 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Done. Edit log transaction id: {transaction_id}")
         )
 
+    def create_resources(
+        self, count, batch_size, build, permission_grants, transaction_id
+    ):
+        created_count = 0
+        while created_count < count:
+            current_batch_size = min(batch_size, count - created_count)
+            resources = [
+                build(created_count + offset + 1)
+                for offset in range(current_batch_size)
+            ]
+            # New Arches projects deny access to resources without explicit
+            # object permissions, and bulk_save indexes those permissions, so
+            # they must exist before it runs.
+            grant_resource_permissions(resources, permission_grants)
+            Resource.bulk_save(resources, transaction_id=transaction_id)
+            created_count += current_batch_size
+            self.stdout.write(f"Created {created_count} of {count}.")
+
     def build_resource(
         self, random_generator, graph, initial_lifecycle_state, sequence_number
     ):
-        resource_id = str(uuid.uuid4())
         name = f"{random_generator.choice(SITE_KINDS)} {sequence_number:05d}"
-        resource = Resource(
-            resourceinstanceid=resource_id,
-            graph=graph,
-            graph_publication=graph.publication,
-            resource_instance_lifecycle_state=initial_lifecycle_state,
-            name={settings.LANGUAGE_CODE: name},
-            descriptors={
-                settings.LANGUAGE_CODE: {
-                    "name": name,
-                    "description": "",
-                    "map_popup": name,
-                }
-            },
-        )
+        resource = new_resource(graph, initial_lifecycle_state, name)
+        resource_id = resource.resourceinstanceid
 
         location_features = [random_feature(random_generator)]
         if random_generator.random() < 0.1:
             location_features.append(random_feature(random_generator))
         resource.tiles = [
-            build_tile(
-                resource_id,
-                NAME_NODE_ID,
-                {
-                    NAME_NODE_ID: {
-                        settings.LANGUAGE_CODE: {"value": name, "direction": "ltr"}
-                    }
-                },
-            ),
+            name_tile(resource_id, name),
             build_tile(
                 resource_id,
                 LOCATION_NODE_ID,
@@ -126,6 +133,46 @@ class Command(BaseCommand):
                 )
             )
         return resource
+
+    def build_unlocated_resource(
+        self, random_generator, graph, initial_lifecycle_state, number
+    ):
+        name = f"{random_generator.choice(UNLOCATED_KINDS)} {number:05d}"
+        resource = new_resource(graph, initial_lifecycle_state, name)
+        resource_id = resource.resourceinstanceid
+        resource.tiles = [name_tile(resource_id, name)]
+        # An empty Location tile, as left when geometry is cleared, so adding
+        # geometry has to fill the existing tile rather than add another.
+        if number % 2 == 0:
+            resource.tiles.append(
+                build_tile(resource_id, LOCATION_NODE_ID, {LOCATION_NODE_ID: None})
+            )
+        return resource
+
+
+def new_resource(graph, initial_lifecycle_state, name):
+    return Resource(
+        resourceinstanceid=str(uuid.uuid4()),
+        graph=graph,
+        graph_publication=graph.publication,
+        resource_instance_lifecycle_state=initial_lifecycle_state,
+        name={settings.LANGUAGE_CODE: name},
+        descriptors={
+            settings.LANGUAGE_CODE: {
+                "name": name,
+                "description": "",
+                "map_popup": name,
+            }
+        },
+    )
+
+
+def name_tile(resource_id, name):
+    return build_tile(
+        resource_id,
+        NAME_NODE_ID,
+        {NAME_NODE_ID: {settings.LANGUAGE_CODE: {"value": name, "direction": "ltr"}}},
+    )
 
 
 def resolve_permission_grants():

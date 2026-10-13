@@ -1,6 +1,8 @@
 import { reactive } from "vue";
 
 import type { TrackedReviewTile } from "@/arches_geolibre/utils/pending-review.ts";
+import type { PendingChange } from "@/arches_geolibre/utils/push-plan.ts";
+import type { Worklist } from "@/arches_geolibre/utils/worklist.ts";
 import type {
     ArchesGeometryNode,
     ArchesLayerSource,
@@ -10,6 +12,7 @@ import type {
 
 /** An Arches layer recorded in a GeoLibre project, saved without credentials. */
 export interface SavedArchesLayer {
+    key?: string;
     layerId: string;
     node: ArchesGeometryNode;
     source: ArchesLayerSource;
@@ -18,6 +21,7 @@ export interface SavedArchesLayer {
 interface ArchesProjectState {
     instanceUrl: string;
     layers: SavedArchesLayer[];
+    worklist?: Worklist | null;
 }
 
 /**
@@ -40,6 +44,9 @@ export interface ArchesWorkspace {
     trackedReviewTiles: TrackedReviewTile[];
     /** The read-only layer drawing those edits. */
     awaitingReviewLayerId: string | null;
+    /** Each loaded layer's pending changes, by the layer's key. */
+    pendingChangesByLayerKey: Record<string, PendingChange[]>;
+    worklist: Worklist | null;
 }
 
 export function createArchesWorkspace(): ArchesWorkspace {
@@ -52,6 +59,8 @@ export function createArchesWorkspace(): ArchesWorkspace {
         savedLayers: [],
         trackedReviewTiles: [],
         awaitingReviewLayerId: null,
+        pendingChangesByLayerKey: {},
+        worklist: null,
     });
 }
 
@@ -64,11 +73,12 @@ export function toProjectState(
         return null;
     }
     const loadedLayers = workspace.loadedLayers.map(
-        ({ layerId, node, source }) => ({ layerId, node, source }),
+        ({ key, layerId, node, source }) => ({ key, layerId, node, source }),
     );
     return {
         instanceUrl,
         layers: [...loadedLayers, ...workspace.savedLayers],
+        worklist: workspace.worklist,
     };
 }
 
@@ -82,6 +92,8 @@ export function applyProjectState(
     workspace.projectInstanceUrl = projectState.instanceUrl;
     workspace.loadedLayers = [];
     workspace.savedLayers = projectState.layers;
+    workspace.pendingChangesByLayerKey = {};
+    workspace.worklist = projectState.worklist ?? null;
     return true;
 }
 

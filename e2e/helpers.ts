@@ -16,12 +16,12 @@ export function recordCreatedResources(page: Page): string[] {
     const createdResourceIds: string[] = [];
     page.on("response", async (response) => {
         const request = response.request();
+        const body = new URLSearchParams(request.postData() ?? "");
         if (
             request.method() === "POST" &&
             response.url() === `${ARCHES_TEST_URL}/api/node_value/` &&
-            !new URLSearchParams(request.postData() ?? "").has(
-                "resourceinstanceid",
-            ) &&
+            !body.has("resourceinstanceid") &&
+            !body.has("tileid") &&
             response.ok()
         ) {
             const savedTile = await response.json();
@@ -31,10 +31,7 @@ export function recordCreatedResources(page: Page): string[] {
     return createdResourceIds;
 }
 
-export async function deleteResources(
-    request: APIRequestContext,
-    resourceIds: string[],
-): Promise<void> {
+async function fetchEditorToken(request: APIRequestContext): Promise<string> {
     const tokenResponse = await request.post(`${ARCHES_TEST_URL}/o/token/`, {
         form: {
             grant_type: "password",
@@ -43,12 +40,125 @@ export async function deleteResources(
             password: TEST_PASSWORD,
         },
     });
-    const { access_token: accessToken } = await tokenResponse.json();
+    return (await tokenResponse.json()).access_token;
+}
+
+export async function deleteResources(
+    request: APIRequestContext,
+    resourceIds: string[],
+): Promise<void> {
+    const accessToken = await fetchEditorToken(request);
     for (const resourceId of resourceIds) {
         await request.delete(`${ARCHES_TEST_URL}/resources/${resourceId}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
         });
     }
+}
+
+interface GeometryWrite {
+    tileId: string;
+    nodeId: string;
+    /** True when the write filled a tile that already existed. */
+    filledExistingTile: boolean;
+}
+
+/** Records the geometry the plugin writes, so a test can undo it. */
+export function recordGeometryWrites(page: Page): GeometryWrite[] {
+    const writes: GeometryWrite[] = [];
+    page.on("response", async (response) => {
+        const request = response.request();
+        if (
+            request.method() !== "POST" ||
+            response.url() !== `${ARCHES_TEST_URL}/api/node_value/` ||
+            !response.ok()
+        ) {
+            return;
+        }
+        const body = new URLSearchParams(request.postData() ?? "");
+        const savedTile = await response.json();
+        writes.push({
+            tileId: savedTile.tileid,
+            nodeId: body.get("nodeid") ?? "",
+            filledExistingTile: body.has("tileid"),
+        });
+    });
+    return writes;
+}
+
+/**
+ * Puts resources back as they were: new tiles are deleted, and tiles that
+ * were empty are emptied again.
+ */
+export async function undoGeometryWrites(
+    request: APIRequestContext,
+    writes: GeometryWrite[],
+): Promise<void> {
+    const accessToken = await fetchEditorToken(request);
+    const headers = { Authorization: `Bearer ${accessToken}` };
+    for (const write of writes) {
+        if (write.filledExistingTile) {
+            await request.post(`${ARCHES_TEST_URL}/api/node_value/`, {
+                headers,
+                form: {
+                    nodeid: write.nodeId,
+                    tileid: write.tileId,
+                    data: JSON.stringify({
+                        type: "FeatureCollection",
+                        features: [],
+                    }),
+                    transaction_id: crypto.randomUUID(),
+                },
+            });
+        } else {
+            await request.delete(
+                `${ARCHES_TEST_URL}/api/tiles/${write.tileId}`,
+                {
+                    headers,
+                },
+            );
+        }
+    }
+}
+
+export const WORKLIST_LAYER_NAME = "GeoLibre Test Asset: Location (worklist)";
+
+export function editResourcesSection(page: Page) {
+    return archesPanel(page).locator(".edit-resources-section");
+}
+
+export async function startLocationWorklist(page: Page): Promise<void> {
+    const section = editResourcesSection(page);
+    await section.getByLabel("Model and geometry to edit").click();
+    await page
+        .getByRole("option", { name: "GeoLibre Test Asset: Location" })
+        .click();
+    await section.getByRole("button", { name: "Start a worklist" }).click();
+    await expect(layerRow(page, WORKLIST_LAYER_NAME)).toHaveCount(1);
+}
+
+/** Adds a resource from the Missing geometry list, found by name. */
+export async function addMissingResource(
+    page: Page,
+    name: string,
+): Promise<void> {
+    const section = editResourcesSection(page);
+    await section.getByPlaceholder("Filter by name").fill(name);
+    await section
+        .getByRole("button", { name: `Add ${name} to the worklist` })
+        .click();
+    await expect(section.locator(".worklist-entries")).toContainText(name);
+}
+
+/** Loads a local GeoJSON file through Add Data, as a surveyor's data would be. */
+export async function addVectorFile(
+    page: Page,
+    filePath: string,
+): Promise<void> {
+    await page.getByRole("button", { name: "Add Data", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Vector Layer" }).click();
+    const fileChooserPromise = page.waitForEvent("filechooser");
+    await page.getByText("Drop file or click to browse").click();
+    await (await fileChooserPromise).setFiles(filePath);
 }
 
 export function layerRow(page: Page, name: string) {

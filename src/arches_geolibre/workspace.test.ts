@@ -30,11 +30,13 @@ describe("project state", () => {
         const workspace = createArchesWorkspace();
         workspace.session = SESSION;
         workspace.loadedLayers.push({
+            key: "location-layer",
             layerId: "layer-1",
             node: LOCATION_NODE,
             source: { kind: "node" },
             isWritable: true,
             baselineFeatures: [],
+            contentRevision: 0,
         });
 
         const projectState = toProjectState(workspace);
@@ -45,6 +47,7 @@ describe("project state", () => {
         expect(reopenedWorkspace.projectInstanceUrl).toBe(SESSION.instanceUrl);
         expect(reopenedWorkspace.savedLayers).toEqual([
             {
+                key: "location-layer",
                 layerId: "layer-1",
                 node: LOCATION_NODE,
                 source: { kind: "node" },

@@ -1,0 +1,24 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Foundry 90002 survey outline",
+                "surveyed": "2026-09-14"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [-0.0991, 51.5071],
+                        [-0.0982, 51.5071],
+                        [-0.0982, 51.5077],
+                        [-0.0991, 51.5077],
+                        [-0.0991, 51.5071]
+                    ]
+                ]
+            }
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import { useGettext } from "vue3-gettext";
 
@@ -30,6 +30,10 @@ import {
     affectedResourceId,
     reconcilePendingChanges,
 } from "@/arches_geolibre/utils/push-plan.ts";
+import {
+    currentTarget,
+    updateEntries,
+} from "@/arches_geolibre/utils/worklist.ts";
 
 import type { LoadedArchesLayer } from "@/arches_geolibre/types.ts";
 import type {
@@ -41,7 +45,7 @@ import type {
     PendingChange,
 } from "@/arches_geolibre/utils/push-plan.ts";
 
-const props = defineProps<{ layerId: string }>();
+const props = defineProps<{ layerKey: string }>();
 
 const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
@@ -49,7 +53,6 @@ const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
 const describeRequestError = useDescribeRequestError();
 
-const pendingChanges = ref<PendingChange[]>([]);
 const editableResourceIds = ref(new Map<string, boolean>());
 const hasChecked = ref(false);
 const isChecking = ref(false);
@@ -59,8 +62,24 @@ const errorMessage = ref("");
 
 const loadedLayer = computed(() =>
     workspace.loadedLayers.find(
-        (candidate) => candidate.layerId === props.layerId,
+        (candidate) => candidate.key === props.layerKey,
     ),
+);
+// Kept in the workspace, so choices survive the GeoLibre layer being replaced.
+const pendingChanges = computed<PendingChange[]>({
+    get: () => workspace.pendingChangesByLayerKey[props.layerKey] ?? [],
+    set: (changes) => {
+        workspace.pendingChangesByLayerKey = {
+            ...workspace.pendingChangesByLayerKey,
+            [props.layerKey]: changes,
+        };
+    },
+});
+// New geometry on the worklist layer belongs to the resource being worked on.
+const defaultTarget = computed<ChangeTarget>(() =>
+    workspace.worklist?.layerKey === props.layerKey
+        ? (currentTarget(workspace.worklist) ?? { kind: "new-resource" })
+        : { kind: "new-resource" },
 );
 const includedCount = computed(
     () =>
@@ -69,9 +88,18 @@ const includedCount = computed(
 );
 
 useEditSessionEnd(
-    () => [props.layerId],
+    () => (loadedLayer.value ? [loadedLayer.value.layerId] : []),
     async () => {
         await checkForChanges();
+    },
+);
+
+watch(
+    () => loadedLayer.value?.contentRevision,
+    async (revision) => {
+        if (revision) {
+            await checkForChanges();
+        }
     },
 );
 
@@ -83,17 +111,20 @@ async function checkForChanges(): Promise<void> {
     try {
         const changes = detectFeatureChanges(
             loadedLayer.value.baselineFeatures,
-            geolibreApp.getLayerFeatures?.(props.layerId) ?? [],
+            geolibreApp.getLayerFeatures?.(loadedLayer.value.layerId) ?? [],
         );
         const candidates = reconcilePendingChanges(
             pendingChanges.value,
             changes,
+            undefined,
+            defaultTarget.value,
         );
         await learnEditPermissions(candidates);
         pendingChanges.value = reconcilePendingChanges(
             pendingChanges.value,
             changes,
             isBlocked,
+            defaultTarget.value,
         );
         hasChecked.value = true;
     } finally {
@@ -177,6 +208,9 @@ async function pushToArches(): Promise<void> {
     isPushing.value = true;
     statusMessage.value = "";
     errorMessage.value = "";
+    const pushedResourceIds = pendingChanges.value
+        .filter((pendingChange) => pendingChange.isIncluded)
+        .map(affectedResourceId);
     try {
         const pushResult = await pushLayerChanges(
             geolibreApp,
@@ -190,6 +224,7 @@ async function pushToArches(): Promise<void> {
             .map(describePushFailure)
             .join("\n");
         trackProvisionalTiles(pushResult);
+        markWorklistEntriesPushed(pushedResourceIds, pushResult);
 
         replaceLayer(
             await reloadArchesLayer(
@@ -209,8 +244,32 @@ async function pushToArches(): Promise<void> {
 
 function replaceLayer(reloadedLayer: LoadedArchesLayer): void {
     workspace.loadedLayers = workspace.loadedLayers.map((candidate) =>
-        candidate.layerId === props.layerId ? reloadedLayer : candidate,
+        candidate.key === props.layerKey ? reloadedLayer : candidate,
     );
+    pendingChanges.value = [];
+    hasChecked.value = false;
+}
+
+function markWorklistEntriesPushed(
+    pushedResourceIds: (string | null)[],
+    pushResult: PushResult,
+): void {
+    if (!workspace.worklist || workspace.worklist.layerKey !== props.layerKey) {
+        return;
+    }
+    const unsavedResourceIds = new Set([
+        ...pushResult.failures.map((failure) => failure.resourceInstanceId),
+        ...pushResult.conflicts.map((conflict) => conflict.resourceInstanceId),
+    ]);
+    const savedResourceIds = pushedResourceIds.filter(
+        (resourceInstanceId): resourceInstanceId is string =>
+            resourceInstanceId !== null &&
+            !unsavedResourceIds.has(resourceInstanceId),
+    );
+    workspace.worklist = updateEntries(workspace.worklist, savedResourceIds, {
+        status: "pushed",
+        hasGeometry: true,
+    });
 }
 
 function trackProvisionalTiles(pushResult: PushResult): void {

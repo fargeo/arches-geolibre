@@ -3,6 +3,7 @@ import AwaitingReviewSection from "@/arches_geolibre/components/AwaitingReviewSe
 import CatalogSection from "@/arches_geolibre/components/CatalogSection/CatalogSection.vue";
 import ConnectionSection from "@/arches_geolibre/components/ConnectionSection/ConnectionSection.vue";
 import DiagnosticsSection from "@/arches_geolibre/components/DiagnosticsSection/DiagnosticsSection.vue";
+import EditResourcesSection from "@/arches_geolibre/components/EditResourcesSection/EditResourcesSection.vue";
 import PendingChanges from "@/arches_geolibre/components/PendingChanges/PendingChanges.vue";
 import ProjectLayersSection from "@/arches_geolibre/components/ProjectLayersSection.vue";
 import SelectionSection from "@/arches_geolibre/components/SelectionSection/SelectionSection.vue";
@@ -23,6 +24,7 @@ const workspace = useArchesWorkspace();
             <AwaitingReviewSection />
             <SelectionSection />
             <CatalogSection />
+            <EditResourcesSection />
             <PendingChanges />
         </template>
         <DiagnosticsSection v-if="SHOW_DIAGNOSTICS" />

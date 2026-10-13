@@ -22,6 +22,17 @@ The instance contains:
     - Every resource has a `Location` (a point, line or polygon). About 10% of
       those tiles hold two features.
     - About 20% of resources also have an `Extent` polygon.
+- **300 unlocated resources**, named "Tannery 90001" to "Brewery 90300", with
+  a name but **no geometry**. They're the records that tools built on spatial
+  views can't see, for resource-first editing.
+    - Even-numbered ones have an empty `Location` tile, as left when geometry
+      is cleared; odd-numbered ones have no `Location` tile at all.
+    - They come from their own random stream, so adding them never changes the
+      located resources. To add them to an existing instance, run
+      `python manage.py generate_geolibre_test_data --count 0`.
+    - Some are reserved, and are put back after use: 90001 and 90002 for the
+      demo recording, 90291 and 90292 for the browser suite, and 90297 and
+      90298 for the integration suite.
 - **Two OAuth applications**: `arches-geolibre-test-device` for browser
   (device code) sign-in, and `arches-geolibre-test` for password sign-in.
 - **Three users**, all with password `geolibre-test-password`:
