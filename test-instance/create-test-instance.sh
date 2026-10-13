@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Creates (or re-wires) a local Arches 8.1 project for testing arches-geolibre.
+# Creates (or re-wires) a local Arches 8.2 project for testing arches-geolibre.
 #
 # Usage: test-instance/create-test-instance.sh <python-env> <project-parent-dir> [resource-count]
-#   python-env          a virtualenv with Arches 8.1 installed, e.g. ~/Projects/arches4/dev_env
+#   python-env          a virtualenv with Arches 8.2 installed (including
+#                       archesproject/arches#13011, #13012 and #13013), e.g.
+#                       ~/Projects/arches4/dev_env_82
 #   project-parent-dir  where the arches_geolibre_test project goes
 #   resource-count      synthetic resources to generate (default 50000; 0 skips)
 #
 # Needs PostgreSQL/PostGIS and Elasticsearch running with Arches' default
-# settings. Creates (and on re-runs, recreates) the arches_geolibre_test
-# database and Elasticsearch indexes; nothing else is touched.
+# settings. Creates (and on re-runs, recreates) the project's database and
+# Elasticsearch indexes (named after the project); nothing else is touched.
 
 set -euo pipefail
 
@@ -16,7 +18,7 @@ PYTHON_ENV="$(cd "${1:?python env required}" && pwd)"
 PROJECT_PARENT="$(cd "${2:?project parent directory required}" && pwd)"
 RESOURCE_COUNT="${3:-50000}"
 
-PROJECT_NAME="arches_geolibre_test"
+PROJECT_NAME="${GEOLIBRE_TEST_PROJECT_NAME:-arches_geolibre_test_82}"
 PROJECT_ROOT="$PROJECT_PARENT/$PROJECT_NAME"
 PACKAGE_DIR="$PROJECT_ROOT/$PROJECT_NAME"
 SUPPORT_APP_SOURCE="$(cd "$(dirname "$0")" && pwd)/geolibre_test_support"
@@ -60,15 +62,6 @@ if marker not in settings_local_text:
     )
     settings_local_path.write_text(settings_local_text)
 
-urls_path = Path(package_dir, "urls.py")
-urls_text = urls_path.read_text()
-if marker not in urls_text:
-    urls_text = urls_text.replace(
-        "    # project-level urls\n",
-        f'    # project-level urls\n    path("", include("geolibre_test_support.urls")),  {marker}\n',
-        1,
-    )
-    urls_path.write_text(urls_text)
 PYTHON
 
 cd "$PROJECT_ROOT"
@@ -80,4 +73,4 @@ fi
 
 echo
 echo "Done. Start it with:"
-echo "  cd $PROJECT_ROOT && $PYTHON_ENV/bin/python manage.py runserver 8001"
+echo "  cd $PROJECT_ROOT && $PYTHON_ENV/bin/python manage.py runserver 8002"

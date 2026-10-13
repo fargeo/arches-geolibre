@@ -53,8 +53,6 @@ export interface LoadedArchesLayer {
     layerId: string;
     node: ArchesGeometryNode;
     source: ArchesLayerSource;
-    /** The area loaded, [west, south, east, north]; null for no limit. */
-    bounds: [number, number, number, number] | null;
     isWritable: boolean;
     baselineFeatures: Feature<Geometry | null>[];
 }

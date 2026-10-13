@@ -1,16 +1,29 @@
 # Arches test instance
 
-A throwaway Arches 8.1 project for developing and testing the plugin. It
-contains:
+A throwaway Arches 8.2 project for developing and testing the plugin. It
+needs an Arches 8.2 that includes three core PRs:
+
+- [archesproject/arches#13011](https://github.com/archesproject/arches/pull/13011): `/geojson` fixes
+- [archesproject/arches#13012](https://github.com/archesproject/arches/pull/13012): creators can see resources they create through the API
+- [archesproject/arches#13013](https://github.com/archesproject/arches/pull/13013): tile deletion through the API
+
+Until those merge, use a local branch with all three merged onto
+`dev/8.2.x`.
+
+The instance contains:
 
 - **GeoLibre Test Asset**, a resource model with a `Name` node and two
-  geometry nodes, `Location` and `Extent`.
+  geometry nodes, `Location` and `Extent`. It's published and marked active:
+  Arches leaves inactive models out of search, refuses tile deletion on
+  them, and won't open them in the resource editor.
+- **A spatial view**, `geolibre_test_locations`, over Location with the
+  `Name` attribute.
 - **50,000 synthetic resources** around Greater London.
     - Every resource has a `Location` (a point, line or polygon). About 10% of
       those tiles hold two features.
     - About 20% of resources also have an `Extent` polygon.
 - **An OAuth application** (client id `arches-geolibre-test`, password grant).
-- **Two users**, both with password `geolibre-test-password`:
+- **Three users**, all with password `geolibre-test-password`:
 
     | User                   | Groups                             | Can                                                    |
     | ---------------------- | ---------------------------------- | ------------------------------------------------------ |
@@ -18,23 +31,10 @@ contains:
     | `geolibre_contributor` | Resource Editor                    | edit; changes are saved as provisional, pending review |
     | `geolibre_viewer`      | Guest                              | read only                                              |
 
-- **A spatial view**, `geolibre_test_locations`, over Location with the
-  `Name` attribute.
-- **Stand-ins for two planned Arches core fixes** (`geolibre_test_support/views.py`),
-  so the plugin can be tested against unpatched 8.1. Remove each once core
-  ships it (the Phase 1 branch has both):
-    - a fixed `/geojson`: core's view with its three 8.1 bugs fixed, faster
-      resource names, and `featureid` reported;
-    - `DELETE /api/tiles/<id>`: tile deletion for token clients, following
-      core's rules (reviewers, or tiles that are still provisional).
-
-The test model is **published and marked active**. Arches leaves out inactive
-models from search, refuses tile deletion on them, and won't open them in the
-resource editor.
-
 New Arches projects use the **default-deny** permission framework, so the
 generator grants each test resource explicit object permissions for the
-`Resource Editor` and `Guest` groups.
+`Resource Editor` and `Guest` groups. Arches' built-in `anonymous` user is
+in `Guest`, so the synthetic data is readable without signing in.
 
 **Reindex after adding users.** Under default-deny, Arches writes read access
 into the search index as user ids, expanded from groups when each resource is
@@ -55,32 +55,30 @@ Prerequisites:
 - PostgreSQL/PostGIS and Elasticsearch running with Arches' default
   connection settings (`postgres`/`postgis` on `localhost:5432`, Elasticsearch
   on `localhost:9200`)
-- a virtualenv with Arches 8.1
+- a virtualenv with Arches 8.2 (including the three PRs above) installed
 
 ```shell
-test-instance/create-test-instance.sh ~/Projects/arches4/dev_env ~/Projects/arches4
+test-instance/create-test-instance.sh ~/Projects/arches4/dev_env_82 ~/Projects/arches4
 ```
 
-This creates `~/Projects/arches4/arches_geolibre_test`, with the database and
-Elasticsearch indexes named `arches_geolibre_test`. It links this folder's
+This creates `~/Projects/arches4/arches_geolibre_test_82`, with its database
+and Elasticsearch indexes named after the project. It links this folder's
 `geolibre_test_support` app into the project, so changes here take effect
-without re-running the script.
+without re-running the script. Set `GEOLIBRE_TEST_PROJECT_NAME` to use a
+different project name.
 
 Re-running the script rebuilds the database from scratch. Stop the server
 first, because `setup_db` drops the database. Pass a third argument to change
-the number of generated resources (`0` skips generation). 50,000 takes about
-8 minutes on a recent Mac.
+the number of generated resources (`0` skips generation). 50,000 takes
+several minutes.
 
 ## Run it
 
 ```shell
-cd ~/Projects/arches4/arches_geolibre_test
-~/Projects/arches4/dev_env/bin/python manage.py runserver 8001
+cd ~/Projects/arches4/arches_geolibre_test_82
+~/Projects/arches4/dev_env_82/bin/python manage.py runserver 8002
 ```
 
-Port 8001 keeps it clear of other projects on 8000. The API is all the plugin
-needs. To browse resources in Arches' own UI, build its frontend once with
-`npm run build_development`.
-
-To behave like a released Arches 8.1, without the stand-ins, start it with
-`GEOLIBRE_TEST_STOCK_ARCHES=true` in the environment.
+Port 8002 keeps it clear of other projects on 8000 and 8001. The API is all
+the plugin needs. To browse resources in Arches' own UI, build its frontend
+once with `npm run build_development`.

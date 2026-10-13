@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 export const ARCHES_TEST_URL =
-    process.env.ARCHES_TEST_URL ?? "http://localhost:8001";
+    process.env.ARCHES_TEST_URL ?? "http://localhost:8002";
 export const EDITOR_USERNAME = "geolibre_editor";
 export const CONTRIBUTOR_USERNAME = "geolibre_contributor";
 

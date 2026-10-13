@@ -1,6 +1,6 @@
 import {
     deleteTile,
-    searchNodeFeatures,
+    fetchNodeFeatures,
     saveTileGeometry,
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
@@ -11,9 +11,8 @@ import {
     isFreshlyDrawn,
 } from "@/arches_geolibre/utils/push-plan.ts";
 
-import type { Feature, Geometry } from "geojson";
+import type { Feature, Geometry, Position } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
-import type { MapBounds } from "@/arches_geolibre/utils/arches-client.ts";
 import type {
     PendingChange,
     PushOperation,
@@ -39,13 +38,13 @@ export interface PushResult {
 export interface LoadArchesLayerOptions {
     source: ArchesLayerSource;
     isWritable: boolean;
-    /** The area to load; null loads every resource (up to the limit). */
-    bounds: MapBounds | null;
     signal?: AbortSignal;
-    onProgress?: (loadedResources: number, totalResources: number) => void;
 }
 
-/** Elasticsearch makes writes searchable within about a second. */
+/**
+ * Under default-deny, /geojson's permission filter reads the search index,
+ * which makes writes visible within about a second.
+ */
 const SEARCH_INDEX_REFRESH_MILLISECONDS = 1500;
 
 export function archesSourcePath(
@@ -69,9 +68,9 @@ export function archesLayerName(
 }
 
 /**
- * Loads a geometry node's features within an area into a new GeoLibre layer,
- * styled as Arches styles it. A spatial view loads its geometry node: on 8.1
- * there is no endpoint that reads a view's attribute columns.
+ * Loads a geometry node into a new GeoLibre layer, styled as Arches styles
+ * it, and zooms to it. A spatial view loads its geometry node: no Arches
+ * endpoint reads a view's attribute columns yet.
  */
 export async function loadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
@@ -81,10 +80,8 @@ export async function loadArchesLayer(
     options: LoadArchesLayerOptions,
 ): Promise<LoadedArchesLayer> {
     const taggedCollection = tagArchesFeatures(
-        await searchNodeFeatures(fetchImplementation, session, node, {
-            bounds: options.bounds,
+        await fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
             signal: options.signal,
-            onProgress: options.onProgress,
         }),
     );
     const layerId = geolibreApp.addGeoJsonLayer(
@@ -102,11 +99,14 @@ export async function loadArchesLayer(
             styleResult.warnings,
         );
     }
+    const bounds = featureBounds(taggedCollection.features);
+    if (bounds) {
+        geolibreApp.fitBounds?.(bounds);
+    }
     return {
         layerId,
         node,
         source: options.source,
-        bounds: options.bounds,
         isWritable: options.isWritable,
         baselineFeatures: structuredClone(taggedCollection.features),
     };
@@ -246,10 +246,10 @@ async function fetchAttachTargetFeatures(
     if (resourceIdsToFetch.length === 0) {
         return [];
     }
-    const featureCollection = await searchNodeFeatures(
+    const featureCollection = await fetchNodeFeatures(
         fetchImplementation,
         session,
-        node,
+        node.nodeid,
         { resourceInstanceIds: resourceIdsToFetch },
     );
     return tagArchesFeatures(featureCollection).features;
@@ -278,21 +278,17 @@ function describeFailure(operation: PushOperation, error: unknown): string {
 }
 
 /**
- * Replaces a layer with a fresh load from Arches, of its own area or of
- * `bounds`. Splits and copies leave the layer holding duplicate feature keys,
- * so after a push the layer is reloaded rather than re-baselined in place.
+ * Replaces a layer with a fresh load from Arches. Splits and copies leave the
+ * layer holding duplicate feature keys, so after a push the layer is
+ * reloaded rather than re-baselined in place.
  */
 export async function reloadArchesLayer(
     geolibreApp: GeoLibreAppAPI,
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     loadedLayer: Pick<LoadedArchesLayer, "layerId" | "node" | "source"> &
-        Partial<Pick<LoadedArchesLayer, "isWritable" | "bounds">>,
-    options: {
-        bounds?: MapBounds | null;
-        afterPush?: boolean;
-        onProgress?: LoadArchesLayerOptions["onProgress"];
-    } = {},
+        Partial<Pick<LoadedArchesLayer, "isWritable">>,
+    options: { afterPush?: boolean } = {},
 ): Promise<LoadedArchesLayer> {
     if (options.afterPush) {
         await waitForSearchIndex();
@@ -305,18 +301,13 @@ export async function reloadArchesLayer(
         {
             source: loadedLayer.source,
             isWritable: loadedLayer.isWritable ?? true,
-            bounds:
-                options.bounds !== undefined
-                    ? options.bounds
-                    : (loadedLayer.bounds ?? null),
-            onProgress: options.onProgress,
         },
     );
     removeLayer(geolibreApp, loadedLayer.layerId);
     return reloadedLayer;
 }
 
-/** Lets writes reach Arches search before reading them back through it. */
+/** Lets writes reach the search index before reading them back. */
 export function waitForSearchIndex(): Promise<void> {
     return new Promise((resolve) =>
         setTimeout(resolve, SEARCH_INDEX_REFRESH_MILLISECONDS),
@@ -333,4 +324,48 @@ export function removeLayer(
     layerId: string,
 ): void {
     geolibreApp.unregisterExternalNativeLayer?.(layerId);
+}
+
+export function featureBounds(
+    features: Feature<Geometry | null>[],
+): [number, number, number, number] | null {
+    let west = Infinity;
+    let south = Infinity;
+    let east = -Infinity;
+    let north = -Infinity;
+    for (const feature of features) {
+        for (const [longitude, latitude] of positionsOf(feature.geometry)) {
+            west = Math.min(west, longitude);
+            south = Math.min(south, latitude);
+            east = Math.max(east, longitude);
+            north = Math.max(north, latitude);
+        }
+    }
+    return Number.isFinite(west) ? [west, south, east, north] : null;
+}
+
+function* positionsOf(geometry: Geometry | null): Generator<Position> {
+    if (!geometry) {
+        return;
+    }
+    if (geometry.type === "GeometryCollection") {
+        for (const memberGeometry of geometry.geometries) {
+            yield* positionsOf(memberGeometry);
+        }
+        return;
+    }
+    yield* flattenPositions(geometry.coordinates);
+}
+
+function* flattenPositions(coordinates: unknown): Generator<Position> {
+    if (!Array.isArray(coordinates)) {
+        return;
+    }
+    if (typeof coordinates[0] === "number") {
+        yield coordinates as Position;
+        return;
+    }
+    for (const nestedCoordinates of coordinates) {
+        yield* flattenPositions(nestedCoordinates);
+    }
 }

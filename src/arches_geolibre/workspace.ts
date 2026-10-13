@@ -13,7 +13,6 @@ export interface SavedArchesLayer {
     layerId: string;
     node: ArchesGeometryNode;
     source: ArchesLayerSource;
-    bounds?: [number, number, number, number] | null;
 }
 
 interface ArchesProjectState {
@@ -59,12 +58,7 @@ export function toProjectState(
         return null;
     }
     const loadedLayers = workspace.loadedLayers.map(
-        ({ layerId, node, source, bounds }) => ({
-            layerId,
-            node,
-            source,
-            bounds,
-        }),
+        ({ layerId, node, source }) => ({ layerId, node, source }),
     );
     return {
         instanceUrl,

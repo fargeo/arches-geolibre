@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, Geometry } from "geojson";
+import type { FeatureCollection, Geometry } from "geojson";
 
 import type {
     ArchesGeometryNode,
@@ -121,197 +121,34 @@ export async function fetchGeometryNodes(
     return (await response.json()) as ArchesGeometryNode[];
 }
 
-export type MapBounds = [number, number, number, number];
-
-export class TooManyResourcesError extends Error {
-    constructor(
-        readonly totalResources: number,
-        readonly maximumResources: number,
-    ) {
-        super(
-            `${totalResources} resources match; the limit is ${maximumResources}.`,
-        );
-        this.name = "TooManyResourcesError";
-    }
-}
-
-export interface SearchNodeFeaturesOptions {
-    /** Only resources with geometry in this area: [west, south, east, north]. */
-    bounds?: MapBounds | null;
-    resourceInstanceIds?: string[];
-    maximumResources?: number;
-    signal?: AbortSignal;
-    onProgress?: (loadedResources: number, totalResources: number) => void;
-}
-
-const DEFAULT_MAXIMUM_RESOURCES = 500;
-const CONCURRENT_SEARCH_PAGES = 4;
-
-interface SearchHit {
-    _id: string;
-    _source: {
-        displayname: string | { value: string }[];
-        geometries?: {
-            tileid: string;
-            nodegroup_id: string;
-            provisional: boolean;
-            geom: FeatureCollection<Geometry>;
-        }[];
-    };
-}
-
-interface SearchPage {
-    results: { hits: { total: { value: number }; hits: SearchHit[] } };
-}
-
 /**
- * A geometry node's features, read through Arches search. This works on
- * released Arches 8.1, whose /geojson endpoint fails on every request.
- *
- * Search returns each resource's tiles with full-precision geometry, tile
- * ids and feature ids, a page of resources at a time (5 on a default 8.1
- * instance). Only approved geometry is kept: the index also holds pending
- * provisional versions. Throws TooManyResourcesError, before loading, when
- * more resources match than `maximumResources`.
+ * A geometry node's features through /geojson, in a single request.
+ * Requires Arches 8.2 with archesproject/arches#13011, which fixes the
+ * endpoint (it fails on every request in 8.1), reports each feature's stored
+ * id as `featureid`, and makes `include_primary_name` work without one query
+ * per feature.
  */
-export async function searchNodeFeatures(
+export async function fetchNodeFeatures(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
-    node: ArchesGeometryNode,
-    options: SearchNodeFeaturesOptions = {},
+    nodeId: string,
+    options: { resourceInstanceIds?: string[]; signal?: AbortSignal } = {},
 ): Promise<FeatureCollection<Geometry>> {
-    const maximumResources =
-        options.maximumResources ?? DEFAULT_MAXIMUM_RESOURCES;
-    const fetchPage = (pageNumber: number): Promise<SearchPage> =>
-        fetchSearchPage(
-            fetchImplementation,
-            session,
-            node,
-            options,
-            pageNumber,
-        );
-
-    const firstPage = await fetchPage(1);
-    const totalResources = firstPage.results.hits.total.value;
-    if (totalResources > maximumResources) {
-        throw new TooManyResourcesError(totalResources, maximumResources);
-    }
-    const pageSize = Math.max(firstPage.results.hits.hits.length, 1);
-    const pageCount = Math.ceil(totalResources / pageSize);
-
-    const hitsByResourceId = new Map<string, SearchHit>();
-    const collectHits = (page: SearchPage): void => {
-        for (const hit of page.results.hits.hits) {
-            hitsByResourceId.set(hit._id, hit);
-        }
-        options.onProgress?.(hitsByResourceId.size, totalResources);
-    };
-    collectHits(firstPage);
-
-    for (
-        let firstPageNumber = 2;
-        firstPageNumber <= pageCount;
-        firstPageNumber += CONCURRENT_SEARCH_PAGES
-    ) {
-        const pageNumbers = Array.from(
-            { length: CONCURRENT_SEARCH_PAGES },
-            (_unused, offset) => firstPageNumber + offset,
-        ).filter((pageNumber) => pageNumber <= pageCount);
-        const pages = await Promise.all(pageNumbers.map(fetchPage));
-        pages.forEach(collectHits);
-    }
-
-    return {
-        type: "FeatureCollection",
-        features: [...hitsByResourceId.values()].flatMap((hit) =>
-            approvedNodeFeatures(hit, node),
-        ),
-    };
-}
-
-async function fetchSearchPage(
-    fetchImplementation: typeof fetch,
-    session: ArchesSession,
-    node: ArchesGeometryNode,
-    options: SearchNodeFeaturesOptions,
-    pageNumber: number,
-): Promise<SearchPage> {
     const query = new URLSearchParams({
-        "paging-filter": String(pageNumber),
-        // Name order keeps pages stable from one request to the next.
-        "sort-results": "asc",
-        "resource-type-filter": JSON.stringify([
-            { graphid: node.graph_id, inverted: false },
-        ]),
+        nodeid: nodeId,
+        include_primary_name: "true",
     });
-    if (options.bounds) {
-        query.set("map-filter", JSON.stringify(boundsFilter(options.bounds)));
-    }
     if (options.resourceInstanceIds?.length) {
-        query.set("ids", JSON.stringify(options.resourceInstanceIds));
+        query.set("resourceid", options.resourceInstanceIds.join(","));
     }
     const response = await authorizedFetch(
         fetchImplementation,
         session,
-        `/search/resources?${query}`,
+        `/geojson?${query}`,
         { signal: options.signal },
     );
     await assertOk(response, "Could not load features");
-    return (await response.json()) as SearchPage;
-}
-
-function boundsFilter([west, south, east, north]: MapBounds): unknown {
-    return {
-        type: "FeatureCollection",
-        features: [
-            {
-                type: "Feature",
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [
-                        [
-                            [west, south],
-                            [east, south],
-                            [east, north],
-                            [west, north],
-                            [west, south],
-                        ],
-                    ],
-                },
-                properties: {
-                    buffer: { width: 0, unit: "m" },
-                    inverted: false,
-                },
-            },
-        ],
-    };
-}
-
-/** The node's approved features in a search hit, shaped as /geojson shapes them. */
-function approvedNodeFeatures(
-    hit: SearchHit,
-    node: ArchesGeometryNode,
-): Feature<Geometry>[] {
-    const primaryName = readDisplayName(hit._source.displayname);
-    return (hit._source.geometries ?? [])
-        .filter(
-            (tileGeometry) =>
-                tileGeometry.nodegroup_id === node.nodegroup_id &&
-                !tileGeometry.provisional,
-        )
-        .flatMap((tileGeometry) =>
-            tileGeometry.geom.features.map((feature) => ({
-                type: "Feature" as const,
-                geometry: feature.geometry,
-                properties: {
-                    featureid: feature.id,
-                    tileid: tileGeometry.tileid,
-                    resourceinstanceid: hit._id,
-                    nodeid: node.nodeid,
-                    primary_name: primaryName,
-                },
-            })),
-        );
+    return (await response.json()) as FeatureCollection<Geometry>;
 }
 
 export async function fetchSpatialViews(
@@ -347,9 +184,9 @@ export async function fetchCanEditResource(
 }
 
 /**
- * Deletes a tile through /api/tiles/<id>, which Arches 8.1 doesn't support
- * yet (see the Phase 1 core branch). Returns false when the tile couldn't be
- * deleted, so the caller can fall back to clearing it.
+ * Deletes a tile through /api/tiles/<id> (archesproject/arches#13013).
+ * Returns false when Arches refuses: only reviewers may delete a tile that
+ * holds approved data, so the caller falls back to clearing it.
  */
 export async function deleteTile(
     fetchImplementation: typeof fetch,

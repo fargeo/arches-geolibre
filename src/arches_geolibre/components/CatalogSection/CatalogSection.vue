@@ -14,7 +14,6 @@ import {
     useGeoLibreApp,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import {
-    TooManyResourcesError,
     fetchGeometryNodes,
     fetchSpatialViews,
 } from "@/arches_geolibre/utils/arches-client.ts";
@@ -40,7 +39,6 @@ const isFetchingCatalog = ref(false);
 const loadingEntryKey = ref<string | null>(null);
 const errorMessage = ref("");
 const infoMessage = ref("");
-const progressMessage = ref("");
 
 let loadAbortController: AbortController | null = null;
 
@@ -111,7 +109,6 @@ async function addToMap(
     loadingEntryKey.value = entryKey;
     errorMessage.value = "";
     infoMessage.value = "";
-    progressMessage.value = "";
     try {
         const loadedLayer = await loadArchesLayer(
             geolibreApp,
@@ -121,33 +118,18 @@ async function addToMap(
             {
                 source,
                 isWritable: writableNodeIds.value.has(node.nodeid),
-                bounds: geolibreApp.getViewBounds?.() ?? null,
                 signal: loadAbortController.signal,
-                onProgress: (loadedResources, totalResources) => {
-                    progressMessage.value = $gettext(
-                        "Loading %{loaded} of %{total} resources in view…",
-                        { loaded: loadedResources, total: totalResources },
-                    );
-                },
             },
         );
         workspace.loadedLayers.push(loadedLayer);
         if (loadedLayer.baselineFeatures.length === 0) {
             infoMessage.value = $gettext(
-                "%{name} has no geometry you're allowed to see in this view.",
+                "%{name} has no geometry you're allowed to see.",
                 { name: node.name },
             );
         }
     } catch (error) {
-        if (error instanceof TooManyResourcesError) {
-            infoMessage.value = $gettext(
-                "%{total} resources are in view, more than the %{maximum} that can be loaded at once. Zoom in and try again.",
-                {
-                    total: error.totalResources,
-                    maximum: error.maximumResources,
-                },
-            );
-        } else if (!loadAbortController.signal.aborted) {
+        if (!loadAbortController.signal.aborted) {
             errorMessage.value = $gettext("Could not load %{name}: %{reason}", {
                 name: node.name,
                 reason: String(error),
@@ -156,7 +138,6 @@ async function addToMap(
     } finally {
         loadingEntryKey.value = null;
         loadAbortController = null;
-        progressMessage.value = "";
     }
 }
 
@@ -168,13 +149,6 @@ function cancelLoading(): void {
 <template>
     <section class="catalog-section">
         <h3>{{ $gettext("Add Arches data") }}</h3>
-        <small>
-            {{
-                $gettext(
-                    "Layers load the resources in the current map view. Zoom to the area you want first.",
-                )
-            }}
-        </small>
         <p v-if="isFetchingCatalog">{{ $gettext("Loading the catalog…") }}</p>
         <ResourceModelGroup
             v-for="group in resourceModelGroups"
@@ -199,7 +173,6 @@ function cancelLoading(): void {
                 $gettext("You can't see any geometry in this Arches instance.")
             }}
         </p>
-        <small v-if="progressMessage">{{ progressMessage }}</small>
         <Message
             v-if="infoMessage"
             severity="info"

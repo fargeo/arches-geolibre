@@ -1,12 +1,12 @@
 import {
     fetchCanEditResource,
-    TooManyResourcesError,
     fetchGeometryNodes,
     fetchSpatialViews,
     refreshSession,
-    searchNodeFeatures,
+    fetchNodeFeatures,
     searchResources,
 } from "@/arches_geolibre/utils/arches-client.ts";
+import { waitForSearchIndex } from "@/arches_geolibre/utils/arches-layers.ts";
 import { fetchOwnPendingFeatures } from "@/arches_geolibre/utils/pending-review.ts";
 
 import {
@@ -15,8 +15,6 @@ import {
     EXTENT_NODE,
     FakeGeoLibreApp,
     LOCATION_NODE,
-    STOCK_ARCHES,
-    TEST_AREA,
     VIEWER_USERNAME,
     findGeneratedResourceId,
     findResourceWithoutExtent,
@@ -110,17 +108,16 @@ describe("catalog and loading", () => {
         );
     });
 
-    it("loads the features in an area through search, as /geojson would shape them", async () => {
+    it("loads a whole geometry node, reporting featureid and names", async () => {
         const startedAt = performance.now();
-        const featureCollection = await searchNodeFeatures(
+        const featureCollection = await fetchNodeFeatures(
             fetch,
             editorSession,
-            LOCATION_NODE,
-            { bounds: TEST_AREA },
+            LOCATION_NODE.nodeid,
         );
         const elapsedSeconds = (performance.now() - startedAt) / 1000;
         console.info(
-            `Loaded ${featureCollection.features.length} Location features in the test area in ${elapsedSeconds.toFixed(1)} s`,
+            `Loaded ${featureCollection.features.length} Location features in ${elapsedSeconds.toFixed(1)} s`,
         );
 
         expect(featureCollection.features.length).toBeGreaterThan(0);
@@ -128,18 +125,8 @@ describe("catalog and loading", () => {
             tileid: expect.any(String),
             featureid: expect.any(String),
             resourceinstanceid: expect.any(String),
-            nodeid: LOCATION_NODE.nodeid,
             primary_name: expect.any(String),
         });
-    });
-
-    it("refuses to load more resources than the limit", async () => {
-        await expect(
-            searchNodeFeatures(fetch, editorSession, LOCATION_NODE, {
-                bounds: null,
-                maximumResources: 100,
-            }),
-        ).rejects.toBeInstanceOf(TooManyResourcesError);
     });
 });
 
@@ -155,7 +142,6 @@ describe("creating a resource", () => {
             layerId,
             node: LOCATION_NODE,
             source: { kind: "node" },
-            bounds: null,
             isWritable: true,
             baselineFeatures: [],
         });
@@ -165,21 +151,18 @@ describe("creating a resource", () => {
         createdResourceId = pushResult.createdResourceIds[0];
     });
 
-    // Arches 8.1 bug: /api/node_value/ saves new resources without a principal
-    // user or permissions, so under default-deny their creator can't see them.
-    // This starts passing (and so fails as `it.fails`) once core is fixed.
-    it.fails(
-        "lets the creator read back the resource they created",
-        async () => {
-            const featureCollection = await searchNodeFeatures(
-                fetch,
-                editorSession,
-                LOCATION_NODE,
-                { resourceInstanceIds: [createdResourceId] },
-            );
-            expect(featureCollection.features).toHaveLength(1);
-        },
-    );
+    // Requires archesproject/arches#13012: before it, new resources had no
+    // owner, so under default-deny not even their creator could see them.
+    it("lets the creator read back the resource they created", async () => {
+        await waitForSearchIndex();
+        const featureCollection = await fetchNodeFeatures(
+            fetch,
+            editorSession,
+            LOCATION_NODE.nodeid,
+            { resourceInstanceIds: [createdResourceId] },
+        );
+        expect(featureCollection.features).toHaveLength(1);
+    });
 });
 
 describe("editing an existing resource", () => {
@@ -450,13 +433,7 @@ describe("tiles that gain or lose all their geometry", () => {
             extentLayer,
         );
         expect(deleteResult.failures).toEqual([]);
-        // Released 8.1 can't delete tiles over its API, so the plugin clears
-        // the tile's geometry instead.
-        if (STOCK_ARCHES) {
-            expect(deleteResult.clearedTileCount).toBe(1);
-        } else {
-            expect(deleteResult.deletedTileCount).toBe(1);
-        }
+        expect(deleteResult.deletedTileCount).toBe(1);
 
         const finalLayer = await loadResourceLayer(
             fakeApp,
@@ -472,9 +449,14 @@ describe("finding a resource to attach to", () => {
     it("finds a resource by name", async () => {
         const resourceInstanceId = await findGeneratedResourceId(editorSession);
         const [locationFeature] = (
-            await searchNodeFeatures(fetch, editorSession, LOCATION_NODE, {
-                resourceInstanceIds: [resourceInstanceId],
-            })
+            await fetchNodeFeatures(
+                fetch,
+                editorSession,
+                LOCATION_NODE.nodeid,
+                {
+                    resourceInstanceIds: [resourceInstanceId],
+                },
+            )
         ).features;
         const name = String(locationFeature.properties?.primary_name);
 

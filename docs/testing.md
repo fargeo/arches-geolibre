@@ -6,8 +6,8 @@ covers something the others can't.
 | Layer         | Command                    | Needs                                    | Covers                                                                                                                   |
 | ------------- | -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Unit          | `npm test`                 | nothing                                  | diffing, feature keys, tile rebuilds                                                                                     |
-| Integration   | `npm run test:integration` | test Arches on :8001                     | sign-in and refresh, catalog, loading, every push path, permissions, against real Arches                                 |
-| Browser (e2e) | `npm run test:e2e`         | test Arches on :8001, GeoLibre web build | plugin loading, panel UI, sign-in through the UI, adding a layer, a real GeoEditor session, edit-session detection, push |
+| Integration   | `npm run test:integration` | test Arches on :8002                     | sign-in and refresh, catalog, loading, every push path, permissions, against real Arches                                 |
+| Browser (e2e) | `npm run test:e2e`         | test Arches on :8002, GeoLibre web build | plugin loading, panel UI, sign-in through the UI, adding a layer, a real GeoEditor session, edit-session detection, push |
 | Manual        | see below                  | GeoLibre Desktop                         | `nativeFetch`, the OS keychain, theme fit, edits too fiddly to script (vertex drags, split, merge)                       |
 
 The browser suite runs GeoLibre's **web** build. In the web build there is no
@@ -20,7 +20,7 @@ keychain. Those differences are why the desktop pass stays manual.
 1. Create the Arches test instance (see `test-instance/README.md`):
 
     ```shell
-    test-instance/create-test-instance.sh ~/Projects/arches4/dev_env ~/Projects/arches4
+    test-instance/create-test-instance.sh ~/Projects/arches4/dev_env_82 ~/Projects/arches4
     ```
 
 2. For the browser suite, build GeoLibre's web app with the plugin bundled
@@ -40,44 +40,28 @@ keychain. Those differences are why the desktop pass stays manual.
 Start the test instance in one terminal:
 
 ```shell
-cd ~/Projects/arches4/arches_geolibre_test
-~/Projects/arches4/dev_env/bin/python manage.py runserver 8001
+cd ~/Projects/arches4/arches_geolibre_test_82
+~/Projects/arches4/dev_env_82/bin/python manage.py runserver 8002
 ```
 
 Then run:
 
 ```shell
 npm test                  # unit
-npm run test:integration  # needs :8001
-npm run test:e2e          # needs :8001; starts GeoLibre's preview server on :4173 itself
+npm run test:integration  # needs :8002
+npm run test:e2e          # needs :8002; starts GeoLibre's preview server on :4173 itself
 ```
 
 `ARCHES_TEST_URL` points the integration and browser suites at a different
 Arches. `GEOLIBRE_DIR` and `GEOLIBRE_PORT` relocate the GeoLibre build.
 
-### Testing against stock Arches 8.1
-
-The test instance normally adds stand-ins for two planned Arches core fixes.
-To make it behave like a released 8.1 instead, start it with the stand-ins
-switched off, and tell the suites:
-
-```shell
-GEOLIBRE_TEST_STOCK_ARCHES=true ~/Projects/arches4/dev_env/bin/python manage.py runserver 8001
-GEOLIBRE_TEST_STOCK_ARCHES=true npm run test:integration
-GEOLIBRE_TEST_STOCK_ARCHES=true npm run test:e2e
-```
-
-Both modes should pass. In stock mode, deleting a resource's last geometry
-clears it instead of deleting the tile, and the tests expect that.
-Colleagues testing on their own instances should follow
-[testing-on-your-arches.md](testing-on-your-arches.md).
-
-The integration and browser suites create resources on every run. That's
-harmless: re-create the instance whenever you want a clean slate.
+This branch targets Arches 8.2 with archesproject/arches#13011, #13012 and
+#13013 in place. For released Arches 8.1, use the plugin's `main` branch and
+its test instance.
 
 ## Testing in GeoLibre Desktop
 
-1. Start the test instance on port 8001 (above).
+1. Start the test instance on port 8002 (above).
 2. Build the plugin and install it into GeoLibre Desktop's plugin folder:
 
     ```shell
@@ -92,15 +76,15 @@ harmless: re-create the instance whenever you want a clean slate.
 4. Open **Plugins → Installed → Arches**. The Arches panel docks beside
    Layers.
 5. Sign in:
-    - **Arches URL:** `http://localhost:8001`
+    - **Arches URL:** `http://localhost:8002`
     - **Username:** `geolibre_editor` (`geolibre_contributor` to see
       provisional edits, `geolibre_viewer` for read only)
     - **Password:** `geolibre-test-password`
 6. Work through the checklist in `docs/phase-0-spikes.md`, recording results
    there.
-    - **Layers load what's in view**, up to 500 resources. The test data is
-      around Greater London: zoom in to part of London (zoom 14 or closer)
-      before choosing **Add**.
+    - **Extent** (about 10,000 features) loads in a few seconds and is the
+      better layer for editing tests. **Location** (about 55,000) takes
+      around 11 seconds.
     - To edit, open the Arches layer's **⋯ Layer actions → Edit geometry**.
       Draw or change features with the GeoEditor toolbar, then **⋯ → Finish
       editing geometry** to save the session.
