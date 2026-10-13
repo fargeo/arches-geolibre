@@ -2,9 +2,9 @@
 # Creates (or re-wires) a local Arches 8.2 project for testing arches-geolibre.
 #
 # Usage: test-instance/create-test-instance.sh <python-env> <project-parent-dir> [resource-count]
-#   python-env          a virtualenv with Arches 8.2 installed (including
-#                       archesproject/arches#13011, #13012 and #13013), e.g.
-#                       ~/Projects/arches4/dev_env_82
+#   python-env          a virtualenv with Arches 8.2 installed: the GeoLibre
+#                       preview of Arches until 8.2.0 is released
+#                       (docs/arches-compatibility.md), e.g. ~/arches-geolibre-env
 #   project-parent-dir  where the arches_geolibre_test project goes
 #   resource-count      synthetic resources to generate (default 50000; 0 skips)
 #
@@ -18,7 +18,7 @@ PYTHON_ENV="$(cd "${1:?python env required}" && pwd)"
 PROJECT_PARENT="$(cd "${2:?project parent directory required}" && pwd)"
 RESOURCE_COUNT="${3:-50000}"
 
-PROJECT_NAME="${GEOLIBRE_TEST_PROJECT_NAME:-arches_geolibre_test_82}"
+PROJECT_NAME="${GEOLIBRE_TEST_PROJECT_NAME:-arches_geolibre_test}"
 PROJECT_ROOT="$PROJECT_PARENT/$PROJECT_NAME"
 PACKAGE_DIR="$PROJECT_ROOT/$PROJECT_NAME"
 SUPPORT_APP_SOURCE="$(cd "$(dirname "$0")" && pwd)/geolibre_test_support"

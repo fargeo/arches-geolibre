@@ -108,10 +108,10 @@ export async function loadResourceLayer(
 let generatedResourceId: Promise<string> | undefined;
 
 /**
- * A generated resource the test groups have object permissions on. Resources
- * the plugin creates can't be used: on 8.1 /api/node_value/ leaves them
- * without an owner or permissions, so under the default-deny framework no
- * one but a superuser can see them.
+ * A generated resource the test groups have object permissions on, rather
+ * than one the plugin creates: without archesproject/arches#13012,
+ * /api/node_value/ leaves new resources without an owner, so under the
+ * default-deny framework no one but a superuser can see them.
  */
 export function findGeneratedResourceId(
     session: ArchesSession,

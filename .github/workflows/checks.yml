@@ -4,7 +4,7 @@ name: Checks
 # build, so they run locally; see docs/testing.md.
 on:
     push:
-        branches: [arches-8.2]
+        branches: [main]
     pull_request:
 
 jobs:

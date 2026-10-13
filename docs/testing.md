@@ -17,10 +17,11 @@ keychain. Those differences are why the desktop pass stays manual.
 
 ## One-time setup
 
-1. Create the Arches test instance (see `test-instance/README.md`):
+1. Create the Arches test instance. It runs the GeoLibre preview of Arches;
+   `test-instance/README.md` covers installing it:
 
     ```shell
-    test-instance/create-test-instance.sh ~/Projects/arches4/dev_env_82 ~/Projects/arches4
+    test-instance/create-test-instance.sh ~/arches-geolibre-env ~/projects
     ```
 
 2. For the browser suite, build GeoLibre's web app with the plugin bundled
@@ -40,8 +41,8 @@ keychain. Those differences are why the desktop pass stays manual.
 Start the test instance in one terminal:
 
 ```shell
-cd ~/Projects/arches4/arches_geolibre_test_82
-~/Projects/arches4/dev_env_82/bin/python manage.py runserver 8002
+cd ~/projects/arches_geolibre_test
+~/arches-geolibre-env/bin/python manage.py runserver 8002
 ```
 
 Then run:
@@ -55,9 +56,8 @@ npm run test:e2e          # needs :8002; starts GeoLibre's preview server on :41
 `ARCHES_TEST_URL` points the integration and browser suites at a different
 Arches. `GEOLIBRE_DIR` and `GEOLIBRE_PORT` relocate the GeoLibre build.
 
-This branch targets Arches 8.2 with archesproject/arches#13011, #13012 and
-#13013 in place. For released Arches 8.1, use the plugin's `main` branch and
-its test instance.
+The test instance runs the GeoLibre preview of Arches until Arches 8.2.0 is
+released ([arches-compatibility.md](arches-compatibility.md)).
 
 ## Testing in GeoLibre Desktop
 
@@ -68,10 +68,13 @@ its test instance.
     npm run install:geolibre
     ```
 
-    This copies `geolibre-plugin/` to
-    `~/Library/Application Support/org.geolibre.desktop/plugins/arches-geolibre/`.
+    This copies `geolibre-plugin/` into GeoLibre Desktop's plugins folder:
+    `~/Library/Application Support/org.geolibre.desktop/plugins/` on macOS,
+    `%APPDATA%\org.geolibre.desktop\plugins\` on Windows, and
+    `~/.local/share/org.geolibre.desktop/plugins/` on Linux.
+    `GEOLIBRE_PLUGINS_DIR` overrides it.
 
-3. Quit GeoLibre Desktop completely (⌘Q) and reopen it. Plugins are only
+3. Quit GeoLibre Desktop completely (⌘Q on macOS) and reopen it. Plugins are only
    scanned at startup.
 4. Open **Plugins → Installed → Arches**. The Arches panel docks beside
    Layers.

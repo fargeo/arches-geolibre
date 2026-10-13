@@ -1,7 +1,13 @@
 import { useGettext } from "vue3-gettext";
 
 import { useGeoLibreApp } from "@/arches_geolibre/composables/use-geolibre-app.ts";
-import { ArchesRequestError } from "@/arches_geolibre/utils/arches-client.ts";
+import {
+    ArchesRequestError,
+    GeoJsonUnavailableError,
+} from "@/arches_geolibre/utils/arches-client.ts";
+
+const COMPATIBILITY_GUIDE_URL =
+    "https://github.com/fargeo/arches-geolibre/blob/main/docs/arches-compatibility.md";
 
 /** Turns a failed Arches request into a sentence a user can act on. */
 export function useDescribeRequestError(): (error: unknown) => string {
@@ -10,6 +16,12 @@ export function useDescribeRequestError(): (error: unknown) => string {
     // CORS, and a browser reports a CORS refusal like a network failure.
     const isSubjectToCors = !useGeoLibreApp().nativeFetch;
     return (error) => {
+        if (error instanceof GeoJsonUnavailableError) {
+            return $gettext(
+                "Arches couldn't return geometry (HTTP %{status}). It may be missing a fix this plugin needs (archesproject/arches#13011, due in Arches 8.2.0). See which Arches to use: %{url}",
+                { status: String(error.status), url: COMPATIBILITY_GUIDE_URL },
+            );
+        }
         if (error instanceof ArchesRequestError) {
             if (error.status === 401 || error.status === 403) {
                 return $gettext(

@@ -20,6 +20,17 @@ export class ArchesRequestError extends Error {
     }
 }
 
+/**
+ * /geojson failed inside Arches. Arches 8.2 without archesproject/arches#13011
+ * fails on every /geojson request, so that's the likely cause.
+ */
+export class GeoJsonUnavailableError extends ArchesRequestError {
+    constructor(status: number) {
+        super(`Arches couldn't return geometry (HTTP ${status})`, status);
+        this.name = "GeoJsonUnavailableError";
+    }
+}
+
 export function normalizeInstanceUrl(instanceUrl: string): string {
     return instanceUrl.trim().replace(/\/+$/, "");
 }
@@ -125,10 +136,9 @@ export async function fetchGeometryNodes(
 
 /**
  * A geometry node's features through /geojson, in a single request.
- * Requires Arches 8.2 with archesproject/arches#13011, which fixes the
- * endpoint (it fails on every request in 8.1), reports each feature's stored
- * id as `featureid`, and makes `include_primary_name` work without one query
- * per feature.
+ * Requires archesproject/arches#13011 (docs/arches-compatibility.md), which
+ * fixes the endpoint, reports each feature's stored id as `featureid`, and
+ * makes `include_primary_name` work without one query per feature.
  */
 export async function fetchNodeFeatures(
     fetchImplementation: typeof fetch,
@@ -153,6 +163,9 @@ export async function fetchNodeFeatures(
         `/geojson?${query}`,
         { signal: options.signal },
     );
+    if (response.status >= 500) {
+        throw new GeoJsonUnavailableError(response.status);
+    }
     await assertOk(response, "Could not load features");
     if (!options.onBytesReceived || !response.body) {
         return (await response.json()) as FeatureCollection<Geometry>;

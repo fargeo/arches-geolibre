@@ -529,22 +529,26 @@ msgstr[1] ""
 msgid "Showing the first %{count}."
 msgstr ""
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:15
+#: src/arches_geolibre/composables/use-describe-request-error.ts:20
+msgid "Arches couldn't return geometry (HTTP %{status}). It may be missing a fix this plugin needs (archesproject/arches#13011, due in Arches 8.2.0). See which Arches to use: %{url}"
+msgstr ""
+
+#: src/arches_geolibre/composables/use-describe-request-error.ts:27
 msgid "Arches refused the request. Your account may not have permission for this."
 msgstr ""
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:20
+#: src/arches_geolibre/composables/use-describe-request-error.ts:32
 msgid "Arches ran into a problem (HTTP %{status}). Try again; if it keeps happening, ask your Arches administrator to check the server logs."
 msgstr ""
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:25
+#: src/arches_geolibre/composables/use-describe-request-error.ts:37
 msgid "Arches rejected the request: %{detail}"
 msgstr ""
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:30
+#: src/arches_geolibre/composables/use-describe-request-error.ts:42
 msgid "Couldn't reach Arches. Check your connection and the Arches URL. If both are right, the Arches instance may not accept requests from %{origin}: ask its administrator to add %{origin} to CORS_ALLOWED_ORIGINS."
 msgstr ""
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:36
+#: src/arches_geolibre/composables/use-describe-request-error.ts:48
 msgid "Couldn't reach Arches. Check your connection and the Arches URL."
 msgstr ""

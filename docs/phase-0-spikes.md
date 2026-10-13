@@ -1,7 +1,8 @@
 # Phase 0 spikes
 
-The plan these spikes come from lives in
-`arches4/notes/arches/geolibre_arches_plugin_plan.md`.
+> A record of the early spikes, run against Arches 8.1. The plugin now needs
+> Arches 8.2 ([arches-compatibility.md](arches-compatibility.md)), so the 8.1
+> limits noted here no longer apply.
 
 Tested against GeoLibre source 3.4.0 (`opengeos/GeoLibre@70bbe20`). The
 installed desktop app is 3.3.0. Arches checks were against `dev/8.1.x`.
@@ -212,7 +213,7 @@ Verified in GeoLibre 3.4.0's web build with Playwright.
 
 Prerequisites:
 
-- The Arches test instance running on port 8001 (see `docs/testing.md`);
+- The Arches test instance running on port 8002 (see `docs/testing.md`);
   sign in as `geolibre_editor`
 
 1. `VITE_ARCHES_GEOLIBRE_DIAGNOSTICS=true npm run install:geolibre`, restart

@@ -51,13 +51,11 @@ from `https://fargeo.github.io/arches-geolibre/plugin.json`.
 
 ## Arches requirements
 
-- Arches 8.2 with [#13011](https://github.com/archesproject/arches/pull/13011),
-  [#13012](https://github.com/archesproject/arches/pull/13012) and
-  [#13013](https://github.com/archesproject/arches/pull/13013). For released
-  Arches 8.1, use the `main` branch.
-- For browser sign-in: [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in), with
-  `OAUTH_DEVICE_CLIENT_ID` set and a matching public OAuth application
-  allowing the device code grant
+- **Arches 8.2**, including fixes that are still in review. Until Arches
+  8.2.0 is released, use the GeoLibre preview of Arches: see
+  [docs/arches-compatibility.md](docs/arches-compatibility.md). Arches 8.1 isn't supported.
+- For browser sign-in: `OAUTH_DEVICE_CLIENT_ID` set, and a matching public
+  OAuth application allowing the device code grant
 - For password sign-in: `OAUTH_CLIENT_ID` set, and a matching public OAuth
   application allowing the resource-owner password grant
 - Users who edit must be in the `Resource Editor` group

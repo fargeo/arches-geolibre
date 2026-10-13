@@ -1,14 +1,8 @@
 # Arches test instance
 
-A throwaway Arches 8.2 project for developing and testing the plugin. It
-needs an Arches 8.2 that includes three core PRs:
-
-- [archesproject/arches#13011](https://github.com/archesproject/arches/pull/13011): `/geojson` fixes
-- [archesproject/arches#13012](https://github.com/archesproject/arches/pull/13012): creators can see resources they create through the API
-- [archesproject/arches#13013](https://github.com/archesproject/arches/pull/13013): tile deletion through the API
-
-Until those merge, use a local branch with all three merged onto
-`dev/8.2.x`. For browser sign-in, also merge in [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in).
+A throwaway Arches 8.2 project for developing and testing the plugin. Until
+Arches 8.2.0 is released, it runs the GeoLibre preview of Arches, which adds
+the fixes the plugin needs ([docs/arches-compatibility.md](../docs/arches-compatibility.md)).
 
 The instance contains:
 
@@ -67,13 +61,18 @@ Prerequisites:
 - PostgreSQL/PostGIS and Elasticsearch running with Arches' default
   connection settings (`postgres`/`postgis` on `localhost:5432`, Elasticsearch
   on `localhost:9200`)
-- a virtualenv with Arches 8.2 (including the three PRs above) installed
+- a virtualenv with the GeoLibre preview of Arches installed:
+
+    ```shell
+    python3.12 -m venv ~/arches-geolibre-env
+    ~/arches-geolibre-env/bin/pip install "arches @ git+https://github.com/archesproject/arches.git@rmg/geolibre_8.2_preview"
+    ```
 
 ```shell
-test-instance/create-test-instance.sh ~/Projects/arches4/dev_env_82 ~/Projects/arches4
+test-instance/create-test-instance.sh ~/arches-geolibre-env ~/projects
 ```
 
-This creates `~/Projects/arches4/arches_geolibre_test_82`, with its database
+This creates `~/projects/arches_geolibre_test`, with its database
 and Elasticsearch indexes named after the project. It links this folder's
 `geolibre_test_support` app into the project, so changes here take effect
 without re-running the script. Set `GEOLIBRE_TEST_PROJECT_NAME` to use a
@@ -87,10 +86,11 @@ several minutes.
 ## Run it
 
 ```shell
-cd ~/Projects/arches4/arches_geolibre_test_82
-~/Projects/arches4/dev_env_82/bin/python manage.py runserver 8002
+cd ~/projects/arches_geolibre_test
+~/arches-geolibre-env/bin/python manage.py runserver 8002
 ```
 
-Port 8002 keeps it clear of other projects on 8000 and 8001. The API is all
+Port 8002 lets it run beside another Arches project on the default port 8000,
+and is where the test suites look for it (`ARCHES_TEST_URL` changes that). The API is all
 the plugin needs. To browse resources in Arches' own UI, build its frontend
 once with `npm run build_development`.

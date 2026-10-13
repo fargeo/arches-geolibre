@@ -1,17 +1,9 @@
 # Trying the plugin with your own Arches 8.2
 
-This branch of the plugin targets **Arches 8.2** and assumes three core PRs
-are in place:
-
-- [archesproject/arches#13011](https://github.com/archesproject/arches/pull/13011): `/geojson` fixes
-- [archesproject/arches#13012](https://github.com/archesproject/arches/pull/13012): creators can see resources they create through the API
-- [archesproject/arches#13013](https://github.com/archesproject/arches/pull/13013): tile deletion through the API
-
-Until they're released, the instance must run a build of Arches that includes
-them. For released Arches 8.1, use the plugin's `main` branch instead.
-
-Browser sign-in also needs [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in). Without it, the plugin
-signs in with a password.
+The plugin needs **Arches 8.2**, including fixes that are still in review.
+Until Arches 8.2.0 is released, the instance must run the GeoLibre preview of
+Arches. [arches-compatibility.md](arches-compatibility.md) explains what it
+includes and how to install it.
 
 ## 1. Prepare the Arches instance (an admin does this once)
 
@@ -71,12 +63,14 @@ signs in with a password.
 
 1. Install [GeoLibre Desktop](https://geolibre.app) 3.4 or later.
 2. Get `arches-geolibre-<version>.zip`, from whoever shared it, or build it
-   with `npm run package:zip` on this branch.
+   with `npm run package:zip`.
 3. In GeoLibre, open **Settings → Manage Plugins**, switch to its
    **Settings** tab, and under **Install from file** choose the zip.
-    - Alternatively, unzip it into
-      `~/Library/Application Support/org.geolibre.desktop/plugins/arches-geolibre/`
-      (macOS) and restart GeoLibre.
+    - Alternatively, unzip it into an `arches-geolibre` folder in GeoLibre's
+      plugins folder, then restart GeoLibre. The plugins folder is
+      `~/Library/Application Support/org.geolibre.desktop/plugins/` on macOS,
+      `%APPDATA%\org.geolibre.desktop\plugins\` on Windows, and
+      `~/.local/share/org.geolibre.desktop/plugins/` on Linux.
 4. Open **Plugins → Installed → Arches**. The panel docks beside Layers.
 
 ### GeoLibre on the web
