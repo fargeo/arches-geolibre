@@ -146,23 +146,31 @@ msgstr "Password"
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:44
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:63
 msgid "Arches URL, e.g. https://arches.example.org"
 msgstr "Arches URL, e.g. https://arches.example.org"
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:46
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:65
 msgid "Arches URL"
 msgstr "Arches URL"
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:66
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:74
+msgid "GeoLibre on the web can only reach Arches over HTTPS. Use an https:// address, or GeoLibre Desktop."
+msgstr "GeoLibre on the web can only reach Arches over HTTPS. Use an https:// address, or GeoLibre Desktop."
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:89
+msgid "Stay signed in on this browser"
+msgstr "Stay signed in on this browser"
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:109
 msgid "This Arches instance doesn't offer browser sign-in. Sign in with a password instead."
 msgstr "This Arches instance doesn't offer browser sign-in. Sign in with a password instead."
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:74
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:117
 msgid "Sign in with browser instead"
 msgstr "Sign in with browser instead"
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:75
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:118
 msgid "Use a password instead"
 msgstr "Use a password instead"
 
@@ -331,18 +339,22 @@ msgstr[1] "%{count} selected resources"
 msgid "Showing the first %{count}."
 msgstr "Showing the first %{count}."
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:11
+#: src/arches_geolibre/composables/use-describe-request-error.ts:15
 msgid "Arches refused the request. Your account may not have permission for this."
 msgstr "Arches refused the request. Your account may not have permission for this."
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:16
+#: src/arches_geolibre/composables/use-describe-request-error.ts:20
 msgid "Arches ran into a problem (HTTP %{status}). Try again; if it keeps happening, ask your Arches administrator to check the server logs."
 msgstr "Arches ran into a problem (HTTP %{status}). Try again; if it keeps happening, ask your Arches administrator to check the server logs."
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:21
+#: src/arches_geolibre/composables/use-describe-request-error.ts:25
 msgid "Arches rejected the request: %{detail}"
 msgstr "Arches rejected the request: %{detail}"
 
-#: src/arches_geolibre/composables/use-describe-request-error.ts:26
+#: src/arches_geolibre/composables/use-describe-request-error.ts:30
+msgid "Couldn't reach Arches. Check your connection and the Arches URL. If both are right, the Arches instance may not accept requests from %{origin}: ask its administrator to add %{origin} to CORS_ALLOWED_ORIGINS."
+msgstr "Couldn't reach Arches. Check your connection and the Arches URL. If both are right, the Arches instance may not accept requests from %{origin}: ask its administrator to add %{origin} to CORS_ALLOWED_ORIGINS."
+
+#: src/arches_geolibre/composables/use-describe-request-error.ts:36
 msgid "Couldn't reach Arches. Check your connection and the Arches URL."
 msgstr "Couldn't reach Arches. Check your connection and the Arches URL."

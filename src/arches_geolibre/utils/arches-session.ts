@@ -7,6 +7,15 @@ import type { ArchesSession } from "@/arches_geolibre/types.ts";
 import type { ArchesWorkspace } from "@/arches_geolibre/workspace.ts";
 import type { SessionStore } from "@/arches_geolibre/utils/session-refresh.ts";
 
+/**
+ * On Desktop, sessions go to the OS keychain. On the web, GeoLibre's store is
+ * plain localStorage, which any other plugin in the page can read, so a
+ * session is only saved there if the user asks.
+ */
+export function isSessionSavingOptional(geolibreApp: GeoLibreAppAPI): boolean {
+    return geolibreApp.credentials?.location() === "browser";
+}
+
 export function readSavedSession(
     geolibreApp: GeoLibreAppAPI,
 ): ArchesSession | null {
@@ -18,7 +27,9 @@ export function startSession(
     geolibreApp: GeoLibreAppAPI,
     workspace: ArchesWorkspace,
     session: ArchesSession,
+    shouldSave: boolean,
 ): void {
+    workspace.isSessionSaved = shouldSave;
     saveSession(geolibreApp, workspace, session);
     workspace.hasSessionExpired = false;
     workspace.trackedReviewTiles = loadTrackedReviewTiles(session);
@@ -30,6 +41,7 @@ export function endSession(
 ): void {
     geolibreApp.credentials?.set(CREDENTIAL_SESSION_NAME, "");
     workspace.session = null;
+    workspace.isSessionSaved = false;
     workspace.trackedReviewTiles = [];
     if (workspace.awaitingReviewLayerId) {
         removeLayer(geolibreApp, workspace.awaitingReviewLayerId);
@@ -58,7 +70,7 @@ function saveSession(
 ): void {
     geolibreApp.credentials?.set(
         CREDENTIAL_SESSION_NAME,
-        JSON.stringify(session),
+        workspace.isSessionSaved ? JSON.stringify(session) : "",
     );
     workspace.session = session;
 }

@@ -34,6 +34,37 @@ test("signs in through Arches in the browser", async ({ page }) => {
     );
 });
 
+test("keeps the sign-in across reloads only when asked to", async ({
+    page,
+}) => {
+    const panel = archesPanel(page);
+    await openArchesPanel(page);
+    await signIn(page, EDITOR_USERNAME);
+    await openArchesPanel(page);
+    await expect(panel.getByLabel("Arches URL")).toBeVisible();
+
+    await signIn(page, EDITOR_USERNAME, { staySignedIn: true });
+    await openArchesPanel(page);
+    await expect(
+        panel.getByText(`Signed in to ${ARCHES_TEST_URL}`),
+    ).toBeVisible();
+    await panel.getByRole("button", { name: "Sign out" }).click();
+});
+
+test("suggests a CORS setting when Arches can't be reached", async ({
+    page,
+}) => {
+    await page.route(`${ARCHES_TEST_URL}/**`, (route) => route.abort());
+    await openArchesPanel(page);
+    const panel = archesPanel(page);
+    await panel.getByLabel("Arches URL").fill(ARCHES_TEST_URL);
+    await panel.getByRole("button", { name: "Sign in with browser" }).click();
+
+    await expect(panel).toContainText(
+        `ask its administrator to add ${new URL(page.url()).origin} to CORS_ALLOWED_ORIGINS`,
+    );
+});
+
 test("loads, signs in and lists the test model's geometry nodes", async ({
     page,
 }) => {

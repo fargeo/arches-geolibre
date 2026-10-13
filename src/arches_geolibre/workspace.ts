@@ -27,6 +27,8 @@ interface ArchesProjectState {
  */
 export interface ArchesWorkspace {
     session: ArchesSession | null;
+    /** Whether the session is kept in GeoLibre's credential store. */
+    isSessionSaved: boolean;
     /** The session ended because Arches refused to refresh it. */
     hasSessionExpired: boolean;
     loadedLayers: LoadedArchesLayer[];
@@ -43,6 +45,7 @@ export interface ArchesWorkspace {
 export function createArchesWorkspace(): ArchesWorkspace {
     return reactive({
         session: null,
+        isSessionSaved: false,
         hasSessionExpired: false,
         loadedLayers: [],
         projectInstanceUrl: null,

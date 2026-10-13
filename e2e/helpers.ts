@@ -87,9 +87,16 @@ export async function openArchesPanel(page: Page): Promise<void> {
     ).toBeVisible();
 }
 
-export async function signIn(page: Page, username: string): Promise<void> {
+export async function signIn(
+    page: Page,
+    username: string,
+    { staySignedIn = false } = {},
+): Promise<void> {
     const panel = archesPanel(page);
     await panel.getByLabel("Arches URL").fill(ARCHES_TEST_URL);
+    if (staySignedIn) {
+        await panel.getByLabel("Stay signed in on this browser").check();
+    }
     await panel.getByRole("button", { name: "Use a password instead" }).click();
     await panel.getByLabel("Username").fill(username);
     await panel.getByPlaceholder("Password").fill(TEST_PASSWORD);

@@ -39,7 +39,7 @@ async function restoreSavedSession(): Promise<void> {
     }
     isRestoring.value = true;
     try {
-        signIn(await refreshSession(archesFetch, savedSession));
+        signIn(await refreshSession(archesFetch, savedSession), true);
     } catch {
         endSession(geolibreApp, workspace);
         workspace.hasSessionExpired = true;
@@ -48,8 +48,8 @@ async function restoreSavedSession(): Promise<void> {
     }
 }
 
-function signIn(session: ArchesSession): void {
-    startSession(geolibreApp, workspace, session);
+function signIn(session: ArchesSession, shouldSave: boolean): void {
+    startSession(geolibreApp, workspace, session, shouldSave);
 }
 
 function signOut(): void {

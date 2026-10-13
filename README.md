@@ -33,7 +33,10 @@ instance, running each suite, and testing in GeoLibre Desktop.
 
 To try the plugin on an existing Arches 8.2 instance, see
 [docs/testing-on-your-arches.md](docs/testing-on-your-arches.md).
-`npm run package:zip` builds the zip to install in GeoLibre.
+`npm run package:zip` builds the zip to install in GeoLibre. Pushing a `v*`
+tag that matches `plugin.json`'s version publishes the plugin to GitHub Pages
+(`.github/workflows/publish-plugin.yml`), for GeoLibre on the web to install
+from `https://fargeo.github.io/arches-geolibre/plugin.json`.
 
 ## Arches requirements
 
@@ -47,6 +50,8 @@ To try the plugin on an existing Arches 8.2 instance, see
 - For password sign-in: `OAUTH_CLIENT_ID` set, and a matching public OAuth
   application allowing the resource-owner password grant
 - Users who edit must be in the `Resource Editor` group
+- For GeoLibre on the web: Arches served over HTTPS, with the GeoLibre site
+  in `CORS_ALLOWED_ORIGINS`
 
 ## Layout
 

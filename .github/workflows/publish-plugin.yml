@@ -1,0 +1,56 @@
+name: Publish plugin
+
+# Publishes the built plugin to GitHub Pages, where GeoLibre on the web can
+# install it from https://fargeo.github.io/arches-geolibre/plugin.json
+# (Manage Plugins → Settings → Add manifest URL). GitHub Pages sends the CORS
+# headers GeoLibre needs to fetch it. The zip for Install from file is
+# published alongside.
+on:
+    push:
+        tags: ["v*"]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+            - run: npm ci
+            - name: The tag matches plugin.json's version
+              if: github.ref_type == 'tag'
+              run: |
+                  manifest_version="$(node -p "require('./geolibre-plugin/plugin.json').version")"
+                  test "v$manifest_version" = "$GITHUB_REF_NAME"
+            - run: npm run package:zip
+            - name: Assemble the site
+              run: |
+                  mkdir -p site
+                  cp -R geolibre-plugin/plugin.json geolibre-plugin/dist site/
+                  cp arches-geolibre-*.zip site/
+                  cp site/arches-geolibre-*.zip site/arches-geolibre.zip
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: site
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@v4

@@ -52,9 +52,22 @@ signs in with a password.
     (`python manage.py es index_resources_by_type -rt <graph id>`) before
     they'll see existing resources.
 
-GeoLibre Desktop talks to Arches directly, so no CORS settings are needed.
+4. **For GeoLibre on the web only: allow its address.** GeoLibre Desktop
+   talks to Arches directly, but the web version runs in a browser, which
+   only lets it call Arches if Arches allows the GeoLibre site. Add the sites
+   to the project's settings and restart Arches:
 
-## 2. Install the plugin in GeoLibre Desktop
+    ```python
+    CORS_ALLOWED_ORIGINS = ["https://web.geolibre.app", "https://geolibre.app"]
+    ```
+
+    Add the address of any self-hosted GeoLibre too. Arches must be served
+    over HTTPS: browsers block an HTTPS page from calling a plain-HTTP
+    address.
+
+## 2. Install the plugin
+
+### GeoLibre Desktop
 
 1. Install [GeoLibre Desktop](https://geolibre.app) 3.4 or later.
 2. Get `arches-geolibre-<version>.zip`, from whoever shared it, or build it
@@ -65,6 +78,23 @@ GeoLibre Desktop talks to Arches directly, so no CORS settings are needed.
       `~/Library/Application Support/org.geolibre.desktop/plugins/arches-geolibre/`
       (macOS) and restart GeoLibre.
 4. Open **Plugins → Installed → Arches**. The panel docks beside Layers.
+
+### GeoLibre on the web
+
+1. Open [web.geolibre.app](https://web.geolibre.app), then **Settings →
+   Manage Plugins**, and switch to its **Settings** tab.
+2. Under **Manifest URLs**, add
+   `https://fargeo.github.io/arches-geolibre/plugin.json`. GeoLibre loads the
+   published release and keeps it until you approve an update.
+    - Or, under **Install from file**, choose
+      `arches-geolibre-<version>.zip`. It's also published at
+      `https://fargeo.github.io/arches-geolibre/arches-geolibre.zip`.
+3. Open **Plugins → Installed → Arches**.
+
+On the web, the plugin signs you out when you reload the page, unless you
+tick **Stay signed in on this browser** when signing in. GeoLibre on the web
+stores sign-ins in the browser's local storage, where other plugins could
+read them, so it's off by default. On a shared computer, leave it off.
 
 ## 3. Use it
 
@@ -98,7 +128,7 @@ resources you've created.
 - **Layers load whole nodes.** `/geojson` has no map-area filter yet, so a
   very large node can take a while to load.
 - **Spatial views load their geometry only**, not their attribute columns.
-- **Browser sign-in adds errors to GeoLibre's Diagnostics.** While it waits
+- **Browser sign-in adds errors to GeoLibre Desktop's Diagnostics.** While it waits
   for you to approve, the plugin checks with Arches every few seconds, and
   Arches answers "not yet" with an HTTP 400. GeoLibre lists each of those as
   an error. They're expected and can be ignored.
