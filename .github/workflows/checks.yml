@@ -20,6 +20,8 @@ jobs:
             - run: npm run prettier:check
             - run: npm run ts:check
             - run: npm test
+            - name: Install gettext
+              run: sudo apt-get update && sudo apt-get install -y gettext
             - name: Translation catalogs are up to date
               run: |
                   npm run gettext:extract
