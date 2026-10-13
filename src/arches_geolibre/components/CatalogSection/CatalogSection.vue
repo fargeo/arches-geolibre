@@ -3,12 +3,15 @@ import { computed, ref, watchEffect } from "vue";
 
 import { useGettext } from "vue3-gettext";
 
+import Button from "openvue/button";
 import Message from "openvue/message";
 
+import LoadingProgress from "@/arches_geolibre/components/CatalogSection/components/LoadingProgress.vue";
 import ResourceModelGroup from "@/arches_geolibre/components/CatalogSection/components/ResourceModelGroup.vue";
 import SpatialViewList from "@/arches_geolibre/components/CatalogSection/components/SpatialViewList.vue";
 
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import {
     useArchesFetch,
     useGeoLibreApp,
@@ -31,6 +34,7 @@ const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const readableNodes = ref<ArchesGeometryNode[]>([]);
 const writableNodeIds = ref(new Set<string>());
@@ -38,6 +42,9 @@ const spatialViews = ref<ArchesSpatialView[]>([]);
 const isFetchingCatalog = ref(false);
 const loadingEntryKey = ref<string | null>(null);
 const errorMessage = ref("");
+const hasCatalogFailed = ref(false);
+const loadingLayerName = ref("");
+const receivedByteCount = ref(0);
 const infoMessage = ref("");
 
 let loadAbortController: AbortController | null = null;
@@ -58,6 +65,7 @@ watchEffect(async () => {
 async function fetchCatalog(session: ArchesSession): Promise<void> {
     isFetchingCatalog.value = true;
     errorMessage.value = "";
+    hasCatalogFailed.value = false;
     try {
         const [nodesUserCanRead, nodesUserCanWrite, activeSpatialViews] =
             await Promise.all([
@@ -73,9 +81,11 @@ async function fetchCatalog(session: ArchesSession): Promise<void> {
             nodesById.value.has(spatialView.geometrynodeid),
         );
     } catch (error) {
-        errorMessage.value = $gettext("Could not load the catalog: %{reason}", {
-            reason: String(error),
-        });
+        hasCatalogFailed.value = true;
+        errorMessage.value = $gettext(
+            "Could not list your Arches data. %{reason}",
+            { reason: describeRequestError(error) },
+        );
     } finally {
         isFetchingCatalog.value = false;
     }
@@ -107,6 +117,8 @@ async function addToMap(
     }
     loadAbortController = new AbortController();
     loadingEntryKey.value = entryKey;
+    loadingLayerName.value = node.name;
+    receivedByteCount.value = 0;
     errorMessage.value = "";
     infoMessage.value = "";
     try {
@@ -119,6 +131,9 @@ async function addToMap(
                 source,
                 isWritable: writableNodeIds.value.has(node.nodeid),
                 signal: loadAbortController.signal,
+                onBytesReceived: (byteCount) => {
+                    receivedByteCount.value = byteCount;
+                },
             },
         );
         workspace.loadedLayers.push(loadedLayer);
@@ -130,9 +145,9 @@ async function addToMap(
         }
     } catch (error) {
         if (!loadAbortController.signal.aborted) {
-            errorMessage.value = $gettext("Could not load %{name}: %{reason}", {
+            errorMessage.value = $gettext("Could not load %{name}. %{reason}", {
                 name: node.name,
-                reason: String(error),
+                reason: describeRequestError(error),
             });
         }
     } finally {
@@ -173,6 +188,11 @@ function cancelLoading(): void {
                 $gettext("You can't see any geometry in this Arches instance.")
             }}
         </p>
+        <LoadingProgress
+            v-if="loadingEntryKey"
+            :layer-name="loadingLayerName"
+            :received-byte-count="receivedByteCount"
+        />
         <Message
             v-if="infoMessage"
             severity="info"
@@ -187,6 +207,13 @@ function cancelLoading(): void {
         >
             {{ errorMessage }}
         </Message>
+        <Button
+            v-if="hasCatalogFailed && workspace.session"
+            :label="$gettext('Try again')"
+            severity="secondary"
+            size="small"
+            @click="fetchCatalog(workspace.session)"
+        />
     </section>
 </template>
 

@@ -434,7 +434,9 @@ describe("editing an existing resource", () => {
 
         expect(pushResult.savedTileCount).toBe(0);
         expect(pushResult.failures).toEqual([
-            expect.stringContaining("HTTP 403"),
+            expect.objectContaining({
+                error: expect.objectContaining({ status: 403 }),
+            }),
         ]);
     });
 });

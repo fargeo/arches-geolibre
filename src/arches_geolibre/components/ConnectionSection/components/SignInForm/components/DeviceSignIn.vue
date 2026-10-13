@@ -6,6 +6,7 @@ import { useGettext } from "vue3-gettext";
 import Button from "openvue/button";
 import Message from "openvue/message";
 
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import {
     useArchesFetch,
     useOpenExternalUrl,
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 const archesFetch = useArchesFetch();
 const openExternalUrl = useOpenExternalUrl();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const isStarting = ref(false);
 const pendingSignIn = ref<DeviceSignIn | null>(null);
@@ -83,10 +85,7 @@ function describeSignInError(error: unknown): string {
             "The sign-in code expired before it was approved. Try again.",
         );
     }
-    return $gettext("Could not reach Arches at %{url}: %{reason}", {
-        url: props.instanceUrl,
-        reason: String(error),
-    });
+    return describeRequestError(error);
 }
 </script>
 
@@ -154,7 +153,7 @@ p {
 }
 
 .waiting {
-    color: var(--p-text-muted-color);
+    color: var(--arches-geolibre-text-muted-color);
 }
 
 .actions {

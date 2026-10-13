@@ -7,6 +7,7 @@ import Button from "openvue/button";
 import Message from "openvue/message";
 
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import {
     useArchesFetch,
     useGeoLibreApp,
@@ -22,6 +23,7 @@ const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const isReloading = ref(false);
 const errorMessage = ref("");
@@ -56,9 +58,9 @@ async function reload(savedLayer: SavedArchesLayer): Promise<void> {
             (candidate) => candidate.layerId !== savedLayer.layerId,
         );
     } catch (error) {
-        errorMessage.value = $gettext("Could not reload %{name}: %{reason}", {
+        errorMessage.value = $gettext("Could not reload %{name}. %{reason}", {
             name: archesLayerName(savedLayer.node, savedLayer.source),
-            reason: String(error),
+            reason: describeRequestError(error),
         });
     }
 }

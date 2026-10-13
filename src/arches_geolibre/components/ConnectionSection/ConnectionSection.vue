@@ -1,32 +1,30 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 
-import { useGettext } from "vue3-gettext";
-
 import Message from "openvue/message";
 
 import SessionSummary from "@/arches_geolibre/components/ConnectionSection/components/SessionSummary.vue";
 import SignInForm from "@/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue";
 
-import { CREDENTIAL_SESSION_NAME } from "@/arches_geolibre/constants.ts";
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
 import {
     useArchesFetch,
     useGeoLibreApp,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import { refreshSession } from "@/arches_geolibre/utils/arches-client.ts";
-import { removeLayer } from "@/arches_geolibre/utils/arches-layers.ts";
-import { loadTrackedReviewTiles } from "@/arches_geolibre/utils/pending-review.ts";
+import {
+    endSession,
+    readSavedSession,
+    startSession,
+} from "@/arches_geolibre/utils/arches-session.ts";
 
 import type { ArchesSession } from "@/arches_geolibre/types.ts";
 
 const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
-const { $gettext } = useGettext();
 
 const isRestoring = ref(false);
-const errorMessage = ref("");
 
 onMounted(async () => {
     if (!workspace.session) {
@@ -35,46 +33,27 @@ onMounted(async () => {
 });
 
 async function restoreSavedSession(): Promise<void> {
-    const savedSession = geolibreApp.credentials?.get(CREDENTIAL_SESSION_NAME);
+    const savedSession = readSavedSession(geolibreApp);
     if (!savedSession) {
         return;
     }
     isRestoring.value = true;
     try {
-        startSession(
-            await refreshSession(
-                archesFetch,
-                JSON.parse(savedSession) as ArchesSession,
-            ),
-        );
+        signIn(await refreshSession(archesFetch, savedSession));
     } catch {
-        errorMessage.value = $gettext(
-            "Your saved Arches session has expired. Sign in again.",
-        );
-        geolibreApp.credentials?.set(CREDENTIAL_SESSION_NAME, "");
+        endSession(geolibreApp, workspace);
+        workspace.hasSessionExpired = true;
     } finally {
         isRestoring.value = false;
     }
 }
 
-function startSession(session: ArchesSession): void {
-    errorMessage.value = "";
-    geolibreApp.credentials?.set(
-        CREDENTIAL_SESSION_NAME,
-        JSON.stringify(session),
-    );
-    workspace.session = session;
-    workspace.trackedReviewTiles = loadTrackedReviewTiles(session);
+function signIn(session: ArchesSession): void {
+    startSession(geolibreApp, workspace, session);
 }
 
 function signOut(): void {
-    geolibreApp.credentials?.set(CREDENTIAL_SESSION_NAME, "");
-    workspace.session = null;
-    workspace.trackedReviewTiles = [];
-    if (workspace.awaitingReviewLayerId) {
-        removeLayer(geolibreApp, workspace.awaitingReviewLayerId);
-        workspace.awaitingReviewLayerId = null;
-    }
+    endSession(geolibreApp, workspace);
 }
 </script>
 
@@ -92,14 +71,14 @@ function signOut(): void {
         <SignInForm
             v-else
             :initial-instance-url="workspace.projectInstanceUrl"
-            @signed-in="startSession"
+            @signed-in="signIn"
         />
         <Message
-            v-if="errorMessage"
+            v-if="workspace.hasSessionExpired && !workspace.session"
             severity="warn"
             size="small"
         >
-            {{ errorMessage }}
+            {{ $gettext("Your Arches session has expired. Sign in again.") }}
         </Message>
     </section>
 </template>

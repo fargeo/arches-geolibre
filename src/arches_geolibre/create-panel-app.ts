@@ -4,6 +4,7 @@ import OpenVue from "openvue/config";
 
 import ArchesPanel from "@/arches_geolibre/ArchesPanel.vue";
 import {
+    ARCHES_FETCH_KEY,
     GEOLIBRE_APP_KEY,
     WORKSPACE_KEY,
 } from "@/arches_geolibre/constants.ts";
@@ -12,6 +13,9 @@ import {
     followGeoLibreLocale,
 } from "@/arches_geolibre/i18n.ts";
 import { ArchesGeoLibrePreset } from "@/arches_geolibre/theme.ts";
+import { workspaceSessionStore } from "@/arches_geolibre/utils/arches-session.ts";
+import { createRefreshingFetch } from "@/arches_geolibre/utils/session-refresh.ts";
+import { createRetryingFetch } from "@/arches_geolibre/utils/transient-retry.ts";
 
 import type { App } from "vue";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
@@ -43,8 +47,23 @@ export function createPanelApp(
     panelApp.use(gettext);
     panelApp.provide(GEOLIBRE_APP_KEY, geolibreApp);
     panelApp.provide(WORKSPACE_KEY, workspace);
+    panelApp.provide(
+        ARCHES_FETCH_KEY,
+        createRefreshingFetch(
+            createRetryingFetch(hostFetch(geolibreApp)),
+            workspaceSessionStore(geolibreApp, workspace),
+        ),
+    );
     return {
         panelApp,
         stopFollowingLocale: followGeoLibreLocale(gettext, geolibreApp),
     };
+}
+
+/**
+ * On desktop, GeoLibre's native HTTP client reaches any Arches instance
+ * without CORS configuration; the browser build falls back to window.fetch.
+ */
+function hostFetch(geolibreApp: GeoLibreAppAPI): typeof fetch {
+    return geolibreApp.nativeFetch ?? window.fetch.bind(window);
 }

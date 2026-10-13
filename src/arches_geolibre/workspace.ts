@@ -27,6 +27,8 @@ interface ArchesProjectState {
  */
 export interface ArchesWorkspace {
     session: ArchesSession | null;
+    /** The session ended because Arches refused to refresh it. */
+    hasSessionExpired: boolean;
     loadedLayers: LoadedArchesLayer[];
     /** The project's instance, kept until the user signs in to it. */
     projectInstanceUrl: string | null;
@@ -41,6 +43,7 @@ export interface ArchesWorkspace {
 export function createArchesWorkspace(): ArchesWorkspace {
     return reactive({
         session: null,
+        hasSessionExpired: false,
         loadedLayers: [],
         projectInstanceUrl: null,
         savedLayers: [],

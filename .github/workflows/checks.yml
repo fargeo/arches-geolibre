@@ -1,0 +1,27 @@
+name: Checks
+
+# The integration and browser suites need an Arches instance and a GeoLibre
+# build, so they run locally; see docs/testing.md.
+on:
+    push:
+        branches: [arches-8.2]
+    pull_request:
+
+jobs:
+    checks:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+            - run: npm ci
+            - run: npm run prettier:check
+            - run: npm run ts:check
+            - run: npm test
+            - name: Translation catalogs are up to date
+              run: |
+                  npm run gettext:extract
+                  git diff --exit-code -- src/arches_geolibre/locale
+            - run: npm run build

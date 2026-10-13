@@ -9,5 +9,7 @@ export const CREDENTIAL_SESSION_NAME = "session";
 
 export const GEOLIBRE_APP_KEY: InjectionKey<GeoLibreAppAPI> =
     Symbol("geolibreApp");
+export const ARCHES_FETCH_KEY: InjectionKey<typeof fetch> =
+    Symbol("archesFetch");
 export const WORKSPACE_KEY: InjectionKey<ArchesWorkspace> =
     Symbol("archesWorkspace");

@@ -134,7 +134,11 @@ export async function fetchNodeFeatures(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
     nodeId: string,
-    options: { resourceInstanceIds?: string[]; signal?: AbortSignal } = {},
+    options: {
+        resourceInstanceIds?: string[];
+        signal?: AbortSignal;
+        onBytesReceived?: (byteCount: number) => void;
+    } = {},
 ): Promise<FeatureCollection<Geometry>> {
     const query = new URLSearchParams({
         nodeid: nodeId,
@@ -150,7 +154,31 @@ export async function fetchNodeFeatures(
         { signal: options.signal },
     );
     await assertOk(response, "Could not load features");
-    return (await response.json()) as FeatureCollection<Geometry>;
+    if (!options.onBytesReceived || !response.body) {
+        return (await response.json()) as FeatureCollection<Geometry>;
+    }
+    return JSON.parse(
+        await readTextWithProgress(response.body, options.onBytesReceived),
+    ) as FeatureCollection<Geometry>;
+}
+
+async function readTextWithProgress(
+    body: ReadableStream<Uint8Array>,
+    onBytesReceived: (byteCount: number) => void,
+): Promise<string> {
+    const decoder = new TextDecoder();
+    const reader = body.getReader();
+    let text = "";
+    let byteCount = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+            return text + decoder.decode();
+        }
+        byteCount += value.byteLength;
+        onBytesReceived(byteCount);
+        text += decoder.decode(value, { stream: true });
+    }
 }
 
 export async function fetchSpatialViews(

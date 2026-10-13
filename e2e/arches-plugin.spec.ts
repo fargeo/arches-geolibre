@@ -60,6 +60,21 @@ test("loads, signs in and lists the test model's geometry nodes", async ({
     expect(failedArchesRequests).toEqual([]);
 });
 
+test("reports progress while a large node loads", async ({ page }) => {
+    await openArchesPanel(page);
+    await signIn(page, EDITOR_USERNAME);
+
+    const progress = archesPanel(page).locator(".loading-progress");
+    await archesPanel(page)
+        .getByRole("button", { name: "Add Location to the map" })
+        .click();
+    await expect(progress).toContainText("Arches is preparing Location");
+    await expect(layerRow(page, "GeoLibre Test Asset: Location")).toBeVisible({
+        timeout: 120_000,
+    });
+    await expect(progress).toHaveCount(0);
+});
+
 test("detects a GeoEditor session's new feature and pushes it to Arches", async ({
     page,
     request,

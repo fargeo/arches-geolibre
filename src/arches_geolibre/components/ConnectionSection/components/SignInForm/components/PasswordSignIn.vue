@@ -8,6 +8,7 @@ import InputText from "openvue/inputtext";
 import Message from "openvue/message";
 import Password from "openvue/password";
 
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import { useArchesFetch } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import {
     ArchesRequestError,
@@ -26,6 +27,7 @@ const emit = defineEmits<{
 
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const username = ref("");
 const password = ref("");
@@ -60,10 +62,7 @@ function describeSignInError(error: unknown): string {
     ) {
         return $gettext("The username or password is incorrect.");
     }
-    return $gettext("Could not reach Arches at %{url}: %{reason}", {
-        url: props.instanceUrl,
-        reason: String(error),
-    });
+    return describeRequestError(error);
 }
 </script>
 

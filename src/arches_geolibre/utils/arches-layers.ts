@@ -40,13 +40,20 @@ export interface PushResult {
     provisionalTileIds: string[];
     /** Tiles skipped because they changed in Arches after the layer loaded. */
     conflicts: TileConflict[];
-    failures: string[];
+    failures: PushFailure[];
+}
+
+export interface PushFailure {
+    resourceName: string | null;
+    isNewResource: boolean;
+    error: unknown;
 }
 
 export interface LoadArchesLayerOptions {
     source: ArchesLayerSource;
     isWritable: boolean;
     signal?: AbortSignal;
+    onBytesReceived?: (byteCount: number) => void;
 }
 
 /**
@@ -90,6 +97,7 @@ export async function loadArchesLayer(
     const taggedCollection = tagArchesFeatures(
         await fetchNodeFeatures(fetchImplementation, session, node.nodeid, {
             signal: options.signal,
+            onBytesReceived: options.onBytesReceived,
         }),
     );
     const layerId = geolibreApp.addGeoJsonLayer(
@@ -231,7 +239,9 @@ export async function pushLayerChanges(
             }
             recordProvisional(result, session, savedTile.tileid);
         } catch (error) {
-            result.failures.push(describeFailure(operation, error));
+            result.failures.push(
+                toPushFailure(operation, loadedFeatures, error),
+            );
         }
     }
     return result;
@@ -319,15 +329,39 @@ function recordProvisional(
     }
 }
 
-function describeFailure(operation: PushOperation, error: unknown): string {
+function toPushFailure(
+    operation: PushOperation,
+    loadedFeatures: Feature<Geometry | null>[],
+    error: unknown,
+): PushFailure {
     switch (operation.kind) {
         case "save-tile":
         case "delete-tile":
-            return `Tile ${operation.tileId}: ${String(error)}`;
-        case "add-tile":
-            return `Resource ${operation.resourceInstanceId}: ${String(error)}`;
+            return {
+                resourceName: loadedTileFeatures(
+                    loadedFeatures,
+                    operation.tileId,
+                ).conflict.resourceName,
+                isNewResource: false,
+                error,
+            };
+        case "add-tile": {
+            const resourceProperties = loadedFeatures.find(
+                (feature) =>
+                    feature.properties?.resourceinstanceid ===
+                    operation.resourceInstanceId,
+            )?.properties;
+            return {
+                resourceName:
+                    typeof resourceProperties?.primary_name === "string"
+                        ? resourceProperties.primary_name
+                        : null,
+                isNewResource: false,
+                error,
+            };
+        }
         case "create-resource":
-            return `New resource: ${String(error)}`;
+            return { resourceName: null, isNewResource: true, error };
     }
 }
 

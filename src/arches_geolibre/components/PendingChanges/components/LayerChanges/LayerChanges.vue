@@ -9,6 +9,7 @@ import Message from "openvue/message";
 import ChangeItem from "@/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/ChangeItem.vue";
 
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import { useEditSessionEnd } from "@/arches_geolibre/composables/use-edit-session-end.ts";
 import {
     useArchesFetch,
@@ -31,7 +32,10 @@ import {
 } from "@/arches_geolibre/utils/push-plan.ts";
 
 import type { LoadedArchesLayer } from "@/arches_geolibre/types.ts";
-import type { PushResult } from "@/arches_geolibre/utils/arches-layers.ts";
+import type {
+    PushFailure,
+    PushResult,
+} from "@/arches_geolibre/utils/arches-layers.ts";
 import type {
     ChangeTarget,
     PendingChange,
@@ -43,6 +47,7 @@ const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const pendingChanges = ref<PendingChange[]>([]);
 const editableResourceIds = ref(new Map<string, boolean>());
@@ -181,7 +186,9 @@ async function pushToArches(): Promise<void> {
             pendingChanges.value,
         );
         statusMessage.value = describePush(pushResult);
-        errorMessage.value = pushResult.failures.join("\n");
+        errorMessage.value = pushResult.failures
+            .map(describePushFailure)
+            .join("\n");
         trackProvisionalTiles(pushResult);
 
         replaceLayer(
@@ -194,7 +201,7 @@ async function pushToArches(): Promise<void> {
             ),
         );
     } catch (error) {
-        errorMessage.value = String(error);
+        errorMessage.value = describeRequestError(error);
     } finally {
         isPushing.value = false;
     }
@@ -221,6 +228,16 @@ function trackProvisionalTiles(pushResult: PushResult): void {
         pushResult.provisionalTileIds.map((tileId) => ({ tileId, nodeId })),
     );
     saveTrackedReviewTiles(session, workspace.trackedReviewTiles);
+}
+
+function describePushFailure(failure: PushFailure): string {
+    const resourceLabel = failure.isNewResource
+        ? $gettext("New resource")
+        : (failure.resourceName ?? $gettext("Unnamed resource"));
+    return $gettext("%{resource} wasn't saved: %{reason}", {
+        resource: resourceLabel,
+        reason: describeRequestError(failure.error),
+    });
 }
 
 function describePush(pushResult: PushResult): string {
@@ -341,6 +358,7 @@ function countOf(kind: PendingChange["change"]["kind"]): number {
         </Message>
         <Message
             v-if="errorMessage"
+            class="error-message"
             severity="error"
             size="small"
         >
@@ -371,5 +389,9 @@ function countOf(kind: PendingChange["change"]["kind"]): number {
     padding: 0;
     overflow-y: auto;
     list-style: none;
+}
+
+.error-message {
+    white-space: pre-line;
 }
 </style>

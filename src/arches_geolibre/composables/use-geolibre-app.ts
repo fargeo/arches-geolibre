@@ -1,6 +1,9 @@
 import { inject } from "vue";
 
-import { GEOLIBRE_APP_KEY } from "@/arches_geolibre/constants.ts";
+import {
+    ARCHES_FETCH_KEY,
+    GEOLIBRE_APP_KEY,
+} from "@/arches_geolibre/constants.ts";
 
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
 
@@ -12,13 +15,13 @@ export function useGeoLibreApp(): GeoLibreAppAPI {
     return geolibreApp;
 }
 
-/**
- * On desktop, GeoLibre's native HTTP client reaches any Arches instance
- * without CORS configuration; the browser build falls back to window.fetch.
- */
+/** The fetch for Arches requests, keeping the session's token current. */
 export function useArchesFetch(): typeof fetch {
-    const geolibreApp = useGeoLibreApp();
-    return geolibreApp.nativeFetch ?? window.fetch.bind(window);
+    const archesFetch = inject(ARCHES_FETCH_KEY);
+    if (!archesFetch) {
+        throw new Error("The Arches fetch was not provided.");
+    }
+    return archesFetch;
 }
 
 /** Opens a page in the system browser on desktop, or a new tab on the web. */

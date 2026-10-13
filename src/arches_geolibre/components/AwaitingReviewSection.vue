@@ -7,6 +7,7 @@ import Button from "openvue/button";
 import Message from "openvue/message";
 
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
+import { useDescribeRequestError } from "@/arches_geolibre/composables/use-describe-request-error.ts";
 import {
     useArchesFetch,
     useGeoLibreApp,
@@ -31,6 +32,7 @@ const workspace = useArchesWorkspace();
 const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
+const describeRequestError = useDescribeRequestError();
 
 const pendingFeatureCount = ref(0);
 const isRefreshing = ref(false);
@@ -65,8 +67,8 @@ async function refreshOverlay(): Promise<void> {
         pendingFeatureCount.value = features.length;
     } catch (error) {
         errorMessage.value = $gettext(
-            "Could not read your edits awaiting review: %{reason}",
-            { reason: String(error) },
+            "Could not read your edits awaiting review. %{reason}",
+            { reason: describeRequestError(error) },
         );
     } finally {
         isRefreshing.value = false;
