@@ -6,7 +6,7 @@ import { useGettext } from "vue3-gettext";
 import Message from "openvue/message";
 
 import SessionSummary from "@/arches_geolibre/components/ConnectionSection/components/SessionSummary.vue";
-import SignInForm from "@/arches_geolibre/components/ConnectionSection/components/SignInForm.vue";
+import SignInForm from "@/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue";
 
 import { CREDENTIAL_SESSION_NAME } from "@/arches_geolibre/constants.ts";
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";

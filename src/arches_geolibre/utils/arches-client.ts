@@ -26,8 +26,8 @@ export function normalizeInstanceUrl(instanceUrl: string): string {
 
 /**
  * Signs in with the OAuth2 password grant, the flow the QGIS and ArcGIS Pro
- * add-ins use. Arches 8.1 ships django-oauth-toolkit 3.0.1, which predates
- * the device authorization grant, so this is the only grant available there.
+ * add-ins use. Browser sign-in (utils/device-sign-in.ts) is preferred where
+ * the instance offers it.
  */
 export async function signInWithPassword(
     fetchImplementation: typeof fetch,
@@ -63,9 +63,11 @@ export async function signInWithPassword(
     );
     await assertOk(tokenResponse, "Sign-in failed");
 
-    return withUserProfile(
+    return sessionFromTokens(
         fetchImplementation,
-        toSession(normalizedInstanceUrl, clientId, await tokenResponse.json()),
+        normalizedInstanceUrl,
+        clientId,
+        await tokenResponse.json(),
     );
 }
 
@@ -355,6 +357,18 @@ async function assertOk(response: Response, message: string): Promise<void> {
     }
 }
 
+export async function sessionFromTokens(
+    fetchImplementation: typeof fetch,
+    instanceUrl: string,
+    clientId: string,
+    tokenPayload: TokenPayload,
+): Promise<ArchesSession> {
+    return withUserProfile(
+        fetchImplementation,
+        toSession(instanceUrl, clientId, tokenPayload),
+    );
+}
+
 async function withUserProfile(
     fetchImplementation: typeof fetch,
     session: ArchesSession,
@@ -379,14 +393,16 @@ async function withUserProfile(
     };
 }
 
+interface TokenPayload {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+}
+
 function toSession(
     instanceUrl: string,
     clientId: string,
-    tokenPayload: {
-        access_token: string;
-        refresh_token: string;
-        expires_in: number;
-    },
+    tokenPayload: TokenPayload,
 ): ArchesSession {
     return {
         instanceUrl,

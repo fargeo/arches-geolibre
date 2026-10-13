@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
 
 export const ARCHES_TEST_URL =
     process.env.ARCHES_TEST_URL ?? "http://localhost:8002";
@@ -8,6 +8,48 @@ export const CONTRIBUTOR_USERNAME = "geolibre_contributor";
 const MINIMUM_DRAWING_ZOOM = 6;
 const POINTER_SETTLE_MILLISECONDS = 150;
 export const TEST_PASSWORD = "geolibre-test-password";
+
+const PASSWORD_CLIENT_ID = "arches-geolibre-test";
+
+/** Records the resources the plugin creates, so a test can delete them. */
+export function recordCreatedResources(page: Page): string[] {
+    const createdResourceIds: string[] = [];
+    page.on("response", async (response) => {
+        const request = response.request();
+        if (
+            request.method() === "POST" &&
+            response.url() === `${ARCHES_TEST_URL}/api/node_value/` &&
+            !new URLSearchParams(request.postData() ?? "").has(
+                "resourceinstanceid",
+            ) &&
+            response.ok()
+        ) {
+            const savedTile = await response.json();
+            createdResourceIds.push(savedTile.resourceinstance_id);
+        }
+    });
+    return createdResourceIds;
+}
+
+export async function deleteResources(
+    request: APIRequestContext,
+    resourceIds: string[],
+): Promise<void> {
+    const tokenResponse = await request.post(`${ARCHES_TEST_URL}/o/token/`, {
+        form: {
+            grant_type: "password",
+            client_id: PASSWORD_CLIENT_ID,
+            username: EDITOR_USERNAME,
+            password: TEST_PASSWORD,
+        },
+    });
+    const { access_token: accessToken } = await tokenResponse.json();
+    for (const resourceId of resourceIds) {
+        await request.delete(`${ARCHES_TEST_URL}/resources/${resourceId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+    }
+}
 
 export function layerRow(page: Page, name: string) {
     return page.locator(`[data-testid="layer-row"][data-layer-name="${name}"]`);
@@ -31,8 +73,7 @@ export async function canvasPoint(
     };
 }
 
-// Central London at zoom 14: about a hundred test resources, well under
-// the plugin's load limit. Layers load what's in view.
+// Central London, zoomed in far enough for GeoEditor to draw.
 const TEST_AREA_URL = "/?lat=51.505&lon=-0.125&zoom=14";
 
 export async function openArchesPanel(page: Page): Promise<void> {
@@ -49,12 +90,41 @@ export async function openArchesPanel(page: Page): Promise<void> {
 export async function signIn(page: Page, username: string): Promise<void> {
     const panel = archesPanel(page);
     await panel.getByLabel("Arches URL").fill(ARCHES_TEST_URL);
+    await panel.getByRole("button", { name: "Use a password instead" }).click();
     await panel.getByLabel("Username").fill(username);
     await panel.getByPlaceholder("Password").fill(TEST_PASSWORD);
-    await panel.getByRole("button", { name: "Sign in" }).click();
+    await panel.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(
         panel.getByText(`Signed in to ${ARCHES_TEST_URL}`),
     ).toBeVisible();
+}
+
+/** Signs in through Arches' code page, which GeoLibre opens in a new tab. */
+export async function signInWithBrowser(
+    page: Page,
+    username: string,
+): Promise<void> {
+    const panel = archesPanel(page);
+    await panel.getByLabel("Arches URL").fill(ARCHES_TEST_URL);
+    const codePagePromise = page.context().waitForEvent("page");
+    await panel.getByRole("button", { name: "Sign in with browser" }).click();
+    const userCode = await panel.locator(".user-code").textContent();
+
+    const codePage = await codePagePromise;
+    await codePage.locator("input[name=username]").fill(username);
+    await codePage.getByRole("button", { name: "Continue" }).click();
+    await codePage.locator("input[name=password]").fill(TEST_PASSWORD);
+    await codePage.locator("input[name=password]").press("Enter");
+    await expect(codePage.locator("input[name=user_code]")).toHaveValue(
+        userCode!,
+    );
+    await codePage.locator("input[name=user_code]").press("Enter");
+    await codePage.locator("[name=action][value=accept]").click();
+    await codePage.close();
+
+    await expect(
+        panel.getByText(`Signed in to ${ARCHES_TEST_URL}`),
+    ).toBeVisible({ timeout: 15_000 });
 }
 
 export async function addNodeToMap(

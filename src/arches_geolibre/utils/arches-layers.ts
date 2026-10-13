@@ -1,6 +1,7 @@
 import {
     deleteTile,
     fetchNodeFeatures,
+    fetchTile,
     saveTileGeometry,
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
@@ -10,9 +11,14 @@ import {
     buildPushOperations,
     isFreshlyDrawn,
 } from "@/arches_geolibre/utils/push-plan.ts";
+import {
+    loadedTileFeatures,
+    tileMatchesLoadedFeatures,
+} from "@/arches_geolibre/utils/tile-conflicts.ts";
 
-import type { Feature, Geometry, Position } from "geojson";
+import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
+import type { TileConflict } from "@/arches_geolibre/utils/tile-conflicts.ts";
 import type {
     PendingChange,
     PushOperation,
@@ -32,6 +38,8 @@ export interface PushResult {
     createdResourceIds: string[];
     /** Tiles whose changes await review: the user isn't a Resource Reviewer. */
     provisionalTileIds: string[];
+    /** Tiles skipped because they changed in Arches after the layer loaded. */
+    conflicts: TileConflict[];
     failures: string[];
 }
 
@@ -150,12 +158,31 @@ export async function pushLayerChanges(
         clearedTileCount: 0,
         createdResourceIds: [],
         provisionalTileIds: [],
+        conflicts: [],
         failures: [],
     };
+    const loadedFeatures = [
+        ...loadedLayer.baselineFeatures,
+        ...existingFeatures,
+    ];
     const nodeId = loadedLayer.node.nodeid;
 
     for (const operation of operations) {
         try {
+            if (
+                (operation.kind === "save-tile" ||
+                    operation.kind === "delete-tile") &&
+                (await findConflict(
+                    fetchImplementation,
+                    session,
+                    nodeId,
+                    operation.tileId,
+                    loadedFeatures,
+                    result,
+                ))
+            ) {
+                continue;
+            }
             if (operation.kind === "delete-tile") {
                 const isDeleted =
                     session.isReviewer &&
@@ -253,6 +280,33 @@ async function fetchAttachTargetFeatures(
         { resourceInstanceIds: resourceIdsToFetch },
     );
     return tagArchesFeatures(featureCollection).features;
+}
+
+/**
+ * Re-reads a tile before overwriting it. If it changed in Arches since the
+ * layer loaded, or is gone, records a conflict so the write is skipped:
+ * a push never overwrites someone else's work.
+ */
+async function findConflict(
+    fetchImplementation: typeof fetch,
+    session: ArchesSession,
+    nodeId: string,
+    tileId: string,
+    loadedFeatures: Feature<Geometry | null>[],
+    result: PushResult,
+): Promise<boolean> {
+    const loadedTile = loadedTileFeatures(loadedFeatures, tileId);
+    const storedTile = await fetchTile(fetchImplementation, session, tileId);
+    const isUnchanged =
+        storedTile !== null &&
+        tileMatchesLoadedFeatures(
+            storedTile.data[nodeId] as FeatureCollection<Geometry> | null,
+            loadedTile.features,
+        );
+    if (!isUnchanged) {
+        result.conflicts.push(loadedTile.conflict);
+    }
+    return !isUnchanged;
 }
 
 function recordProvisional(

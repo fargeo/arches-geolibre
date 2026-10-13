@@ -18,7 +18,7 @@ import type { ArchesSession } from "@/arches_geolibre/types.ts";
 
 const UNAUTHORIZED_STATUS_CODES = [400, 401];
 
-const props = defineProps<{ initialInstanceUrl: string | null }>();
+const props = defineProps<{ instanceUrl: string }>();
 
 const emit = defineEmits<{
     (event: "signed-in", session: ArchesSession): void;
@@ -27,7 +27,6 @@ const emit = defineEmits<{
 const archesFetch = useArchesFetch();
 const { $gettext } = useGettext();
 
-const instanceUrl = ref(props.initialInstanceUrl ?? "");
 const username = ref("");
 const password = ref("");
 const isSigningIn = ref(false);
@@ -41,7 +40,7 @@ async function signIn(): Promise<void> {
             "signed-in",
             await signInWithPassword(
                 archesFetch,
-                instanceUrl.value,
+                props.instanceUrl,
                 username.value,
                 password.value,
             ),
@@ -62,7 +61,7 @@ function describeSignInError(error: unknown): string {
         return $gettext("The username or password is incorrect.");
     }
     return $gettext("Could not reach Arches at %{url}: %{reason}", {
-        url: instanceUrl.value,
+        url: props.instanceUrl,
         reason: String(error),
     });
 }
@@ -70,18 +69,9 @@ function describeSignInError(error: unknown): string {
 
 <template>
     <form
-        class="sign-in-form"
+        class="password-sign-in"
         @submit.prevent="signIn"
     >
-        <InputText
-            v-model="instanceUrl"
-            :placeholder="
-                $gettext('Arches URL, e.g. https://arches.example.org')
-            "
-            :aria-label="$gettext('Arches URL')"
-            type="url"
-            required
-        />
         <InputText
             v-model="username"
             :placeholder="$gettext('Username')"
@@ -101,6 +91,7 @@ function describeSignInError(error: unknown): string {
         <Button
             type="submit"
             :label="$gettext('Sign in')"
+            :disabled="!instanceUrl"
             :loading="isSigningIn"
         />
         <Message
@@ -114,7 +105,7 @@ function describeSignInError(error: unknown): string {
 </template>
 
 <style scoped>
-.sign-in-form {
+.password-sign-in {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;

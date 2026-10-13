@@ -41,7 +41,7 @@ export const EXTENT_NODE: ArchesGeometryNode = {
     resourcemodelname: "GeoLibre Test Asset",
 };
 
-const TEST_PASSWORD = "geolibre-test-password";
+export const TEST_PASSWORD = "geolibre-test-password";
 
 export function signIn(username: string): Promise<ArchesSession> {
     return signInWithPassword(fetch, ARCHES_TEST_URL, username, TEST_PASSWORD);

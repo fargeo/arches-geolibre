@@ -6,13 +6,33 @@ import {
     EDITOR_USERNAME,
     addNodeToMap,
     archesPanel,
+    deleteResources,
     drawSquareInEditSession,
     layerRow,
     openArchesPanel,
+    recordCreatedResources,
     signIn,
+    signInWithBrowser,
 } from "./helpers.ts";
 
 const EXTENT_LAYER_NAME = "GeoLibre Test Asset: Extent";
+
+test("signs in through Arches in the browser", async ({ page }) => {
+    const failedArchesRequests: string[] = [];
+    page.on("response", (response) => {
+        if (response.url().startsWith(ARCHES_TEST_URL) && !response.ok()) {
+            failedArchesRequests.push(new URL(response.url()).pathname);
+        }
+    });
+    await openArchesPanel(page);
+    await signInWithBrowser(page, CONTRIBUTOR_USERNAME);
+
+    await expect(archesPanel(page)).toContainText(CONTRIBUTOR_USERNAME);
+    // Until the user approves, Arches answers each poll with HTTP 400.
+    expect(failedArchesRequests.filter((path) => path !== "/o/token/")).toEqual(
+        [],
+    );
+});
 
 test("loads, signs in and lists the test model's geometry nodes", async ({
     page,
@@ -42,25 +62,34 @@ test("loads, signs in and lists the test model's geometry nodes", async ({
 
 test("detects a GeoEditor session's new feature and pushes it to Arches", async ({
     page,
+    request,
 }) => {
-    await openArchesPanel(page);
-    await signIn(page, EDITOR_USERNAME);
-    await addNodeToMap(page, "Extent");
+    // Remove the drawing afterwards, so the next run doesn't draw onto it.
+    const createdResourceIds = recordCreatedResources(page);
+    try {
+        await openArchesPanel(page);
+        await signIn(page, EDITOR_USERNAME);
+        await addNodeToMap(page, "Extent");
 
-    await drawSquareInEditSession(page, EXTENT_LAYER_NAME);
+        await drawSquareInEditSession(page, EXTENT_LAYER_NAME);
 
-    // No click on "Check": the plugin should notice the session ended.
-    const layerChanges = archesPanel(page)
-        .locator(".layer-changes")
-        .filter({ hasText: "Extent" });
-    await expect(layerChanges).toContainText("0 edited, 1 new, 0 deleted");
+        // No click on "Check": the plugin should notice the session ended.
+        const layerChanges = archesPanel(page)
+            .locator(".layer-changes")
+            .filter({ hasText: "Extent" });
+        await expect(layerChanges).toContainText("0 edited, 1 new, 0 deleted");
 
-    await layerChanges.getByRole("button", { name: "Push to Arches" }).click();
-    await expect(archesPanel(page)).toContainText(
-        "Saved 0 tile(s); created 1 resource(s).",
-        { timeout: 120_000 },
-    );
-    await expect(layerRow(page, EXTENT_LAYER_NAME)).toHaveCount(1);
+        await layerChanges
+            .getByRole("button", { name: "Push to Arches" })
+            .click();
+        await expect(archesPanel(page)).toContainText(
+            "Saved 0 tile(s); created 1 resource(s).",
+            { timeout: 120_000 },
+        );
+        await expect(layerRow(page, EXTENT_LAYER_NAME)).toHaveCount(1);
+    } finally {
+        await deleteResources(request, createdResourceIds);
+    }
 });
 
 test("shows a selected feature's resource with a link into Arches", async ({

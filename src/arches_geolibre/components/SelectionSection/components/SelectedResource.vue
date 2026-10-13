@@ -6,7 +6,7 @@ import Button from "openvue/button";
 import { useArchesWorkspace } from "@/arches_geolibre/composables/use-arches-workspace.ts";
 import {
     useArchesFetch,
-    useGeoLibreApp,
+    useOpenExternalUrl,
 } from "@/arches_geolibre/composables/use-geolibre-app.ts";
 import { fetchCanEditResource } from "@/arches_geolibre/utils/arches-client.ts";
 import { resourceUrl } from "@/arches_geolibre/utils/resource-links.ts";
@@ -17,8 +17,8 @@ const props = defineProps<{
 }>();
 
 const workspace = useArchesWorkspace();
-const geolibreApp = useGeoLibreApp();
 const archesFetch = useArchesFetch();
+const openExternalUrl = useOpenExternalUrl();
 
 const canEdit = ref(false);
 
@@ -48,11 +48,7 @@ function openInArches(): void {
         props.resourceInstanceId,
         canEdit.value,
     );
-    if (geolibreApp.openExternalUrl) {
-        geolibreApp.openExternalUrl(url);
-    } else {
-        window.open(url, "_blank", "noopener");
-    }
+    openExternalUrl(url);
 }
 </script>
 

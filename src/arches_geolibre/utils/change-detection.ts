@@ -77,7 +77,7 @@ export function detectFeatureChanges(
     return changes;
 }
 
-function geometriesAreEqual(
+export function geometriesAreEqual(
     firstGeometry: Geometry | null,
     secondGeometry: Geometry | null,
 ): boolean {

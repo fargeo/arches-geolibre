@@ -57,6 +57,7 @@ msgid "Loading"
 msgstr ""
 
 #: src/arches_geolibre/components/CatalogSection/components/CatalogEntry.vue:27
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:113
 msgid "Cancel"
 msgstr ""
 
@@ -84,34 +85,71 @@ msgstr ""
 msgid "Your edits will be saved as provisional and appear on the map once a reviewer approves them."
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:62
-msgid "The username or password is incorrect."
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:80
+msgid "The sign-in was declined in the browser."
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:64
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:82
+msgid "The sign-in code expired before it was approved. Try again."
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:86
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:63
 msgid "Could not reach Arches at %{url}: %{reason}"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:79
-msgid "Arches URL, e.g. https://arches.example.org"
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:98
+msgid "Approve the sign-in in your browser. Check that it shows this code:"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:81
-msgid "Arches URL"
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:104
+msgid "Waiting for approval…"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:87
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:88
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:107
+msgid "Open the page again"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/DeviceSignIn.vue:123
+msgid "Sign in with browser"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:61
+msgid "The username or password is incorrect."
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:77
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:78
 msgid "Username"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:94
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:95
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:84
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:85
 msgid "Password"
 msgstr ""
 
-#: src/arches_geolibre/components/ConnectionSection/components/SignInForm.vue:103
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/components/PasswordSignIn.vue:93
 msgid "Sign in"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:44
+msgid "Arches URL, e.g. https://arches.example.org"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:46
+msgid "Arches URL"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:66
+msgid "This Arches instance doesn't offer browser sign-in. Sign in with a password instead."
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:74
+msgid "Sign in with browser instead"
+msgstr ""
+
+#: src/arches_geolibre/components/ConnectionSection/components/SignInForm/SignInForm.vue:75
+msgid "Use a password instead"
 msgstr ""
 
 #: src/arches_geolibre/components/ConnectionSection/ConnectionSection.vue:51
@@ -179,7 +217,7 @@ msgid "Use the selected feature: %{name}"
 msgstr ""
 
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/components/ChangeItem/components/AttachTargetPicker.vue:154
-#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:62
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:58
 msgid "Unnamed resource"
 msgstr ""
 
@@ -200,22 +238,30 @@ msgid "Cleared the geometry of %{count} tile(s) that couldn't be deleted."
 msgstr ""
 
 #: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:253
+msgid "Skipped changes to %{names}: changed in Arches since you loaded the layer. The layer now shows the current version; redo those edits if they're still needed."
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:259
+msgid "a resource"
+msgstr ""
+
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:268
 msgid "%{count} edit(s) await review in Arches and won't show on the map until approved."
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:279
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:294
 msgid "Check"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:286
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:301
 msgid "Push to Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:295
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:310
 msgid "%{edited} edited, %{created} new, %{deleted} deleted"
 msgstr ""
 
-#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:305
+#: src/arches_geolibre/components/PendingChanges/components/LayerChanges/LayerChanges.vue:320
 msgid "Read only"
 msgstr ""
 
@@ -247,11 +293,11 @@ msgstr ""
 msgid "This project's Arches layers come from %{instanceUrl}. Sign in there to reload them."
 msgstr ""
 
-#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:67
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:63
 msgid "Edit in Arches"
 msgstr ""
 
-#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:68
+#: src/arches_geolibre/components/SelectionSection/components/SelectedResource.vue:64
 msgid "View in Arches"
 msgstr ""
 

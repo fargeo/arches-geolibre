@@ -248,6 +248,21 @@ function describePush(pushResult: PushResult): string {
             ),
         );
     }
+    if (pushResult.conflicts.length > 0) {
+        parts.push(
+            $gettext(
+                "Skipped changes to %{names}: changed in Arches since you loaded the layer. The layer now shows the current version; redo those edits if they're still needed.",
+                {
+                    names: pushResult.conflicts
+                        .map(
+                            (conflict) =>
+                                conflict.resourceName ?? $gettext("a resource"),
+                        )
+                        .join(", "),
+                },
+            ),
+        );
+    }
     if (pushResult.provisionalTileIds.length > 0) {
         parts.push(
             $gettext(

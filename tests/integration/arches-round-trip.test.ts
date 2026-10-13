@@ -363,6 +363,57 @@ describe("editing an existing resource", () => {
         ).toContainEqual(proposedGeometry);
     });
 
+    it("skips a tile that changed in Arches since loading, without overwriting it", async () => {
+        const staleLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+        );
+
+        const otherLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+        );
+        const [theirFeature, ...theirOtherFeatures] =
+            otherLayer.baselineFeatures;
+        const theirGeometry = square(-0.6, 51.2 + Math.random() / 100);
+        fakeApp.setLayerFeatures(otherLayer.layerId, [
+            { ...theirFeature, geometry: theirGeometry },
+            ...theirOtherFeatures,
+        ]);
+        await pushEverything(fakeApp, editorSession, otherLayer);
+
+        const [staleFeature, ...staleOtherFeatures] =
+            staleLayer.baselineFeatures;
+        fakeApp.setLayerFeatures(staleLayer.layerId, [
+            { ...staleFeature, geometry: square(-0.7, 51.1) },
+            ...staleOtherFeatures,
+        ]);
+        const pushResult = await pushEverything(
+            fakeApp,
+            editorSession,
+            staleLayer,
+        );
+
+        expect(pushResult.failures).toEqual([]);
+        expect(pushResult.savedTileCount).toBe(0);
+        expect(pushResult.conflicts).toEqual([
+            expect.objectContaining({ resourceInstanceId }),
+        ]);
+        const reloadedLayer = await loadResourceLayer(
+            fakeApp,
+            editorSession,
+            resourceInstanceId,
+        );
+        const reloadedFeature = reloadedLayer.baselineFeatures.find(
+            (feature) =>
+                feature.properties?.featureid ===
+                theirFeature.properties?.featureid,
+        );
+        expect(reloadedFeature?.geometry).toEqual(theirGeometry);
+    });
+
     it("refuses an edit from a user without edit rights", async () => {
         const loadedLayer = await loadResourceLayer(
             fakeApp,

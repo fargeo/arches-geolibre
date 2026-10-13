@@ -10,17 +10,30 @@ are in place:
 Until they're released, the instance must run a build of Arches that includes
 them. For released Arches 8.1, use the plugin's `main` branch instead.
 
+Browser sign-in also needs [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in). Without it, the plugin
+signs in with a password.
+
 ## 1. Prepare the Arches instance (an admin does this once)
 
-1. **Allow the plugin to sign in.** The plugin signs in with OAuth2's
-   password grant, the same way the QGIS and ArcGIS Pro add-ins do.
-    - In Django admin (`/admin/oauth2_provider/application/add/`), add an
-      application:
+1. **Allow the plugin to sign in.** Set up either or both:
+    - **Browser sign-in** (recommended): users approve the plugin on Arches'
+      own sign-in page, so the plugin never sees their password. In Django
+      admin (`/admin/oauth2_provider/application/add/`), add an application:
         - **Client type:** Public
-        - **Authorization grant type:** Resource owner password-based
+        - **Authorization grant type:** Device Code
         - Leave the redirect URIs empty, and note the **Client id**.
-    - In the project's `settings.py` or `settings_local.py`, set
-      `OAUTH_CLIENT_ID = "<that client id>"`, then restart Arches.
+
+        Then set `OAUTH_DEVICE_CLIENT_ID = "<that client id>"` in the
+        project's `settings.py` or `settings_local.py`.
+
+    - **Password sign-in**, the way the QGIS and ArcGIS Pro add-ins sign in:
+      add another application the same way, with the grant type **Resource
+      owner password-based**, and set `OAUTH_CLIENT_ID` to its client id.
+      django-oauth-toolkit allows one grant type per application, so this
+      must be a separate application.
+
+    Restart Arches after changing settings.
+
 2. **Check the resource models are active.** In the graph designer, a model
    must be published and marked active. Arches refuses some operations on
    inactive models, including tile deletion.
@@ -55,8 +68,11 @@ GeoLibre Desktop talks to Arches directly, so no CORS settings are needed.
 
 ## 3. Use it
 
-1. **Sign in** with your Arches URL (for example
-   `https://arches.example.org`), username and password.
+1. **Sign in.** Enter your Arches URL (for example
+   `https://arches.example.org`) and choose **Sign in with browser**. Arches
+   opens in your browser. Sign in there if asked, check that it shows the
+   code from the panel, and approve. To use a username and password instead,
+   choose **Use a password instead**.
 2. Under **Add Arches data**, choose **Add** next to a geometry node or a
    spatial view. The whole node loads, and the map zooms to it.
     - Large nodes take a while: about 11 seconds for 55,000 features on a

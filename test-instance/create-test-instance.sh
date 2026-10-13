@@ -23,6 +23,7 @@ PROJECT_ROOT="$PROJECT_PARENT/$PROJECT_NAME"
 PACKAGE_DIR="$PROJECT_ROOT/$PROJECT_NAME"
 SUPPORT_APP_SOURCE="$(cd "$(dirname "$0")" && pwd)/geolibre_test_support"
 OAUTH_CLIENT_ID="arches-geolibre-test"
+OAUTH_DEVICE_CLIENT_ID="arches-geolibre-test-device"
 # GeoLibre's web preview (Playwright suite) and dev servers.
 CORS_ORIGINS='["http://localhost:4173", "http://localhost:5173"]'
 
@@ -35,11 +36,11 @@ fi
 
 ln -sfn "$SUPPORT_APP_SOURCE" "$PROJECT_ROOT/geolibre_test_support"
 
-"$PYTHON_ENV/bin/python" - "$PACKAGE_DIR" "$OAUTH_CLIENT_ID" "$CORS_ORIGINS" <<'PYTHON'
+"$PYTHON_ENV/bin/python" - "$PACKAGE_DIR" "$OAUTH_CLIENT_ID" "$OAUTH_DEVICE_CLIENT_ID" "$CORS_ORIGINS" <<'PYTHON'
 import sys
 from pathlib import Path
 
-package_dir, oauth_client_id, cors_origins = sys.argv[1:]
+package_dir, oauth_client_id, oauth_device_client_id, cors_origins = sys.argv[1:]
 marker = "# arches-geolibre test support"
 
 settings_path = Path(package_dir, "settings.py")
@@ -58,6 +59,7 @@ if marker not in settings_local_text:
     settings_local_text += (
         f"\n{marker}\n"
         f'OAUTH_CLIENT_ID = "{oauth_client_id}"\n'
+        f'OAUTH_DEVICE_CLIENT_ID = "{oauth_device_client_id}"\n'
         f"CORS_ALLOWED_ORIGINS = {cors_origins}\n"
     )
     settings_local_path.write_text(settings_local_text)

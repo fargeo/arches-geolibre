@@ -20,3 +20,15 @@ export function useArchesFetch(): typeof fetch {
     const geolibreApp = useGeoLibreApp();
     return geolibreApp.nativeFetch ?? window.fetch.bind(window);
 }
+
+/** Opens a page in the system browser on desktop, or a new tab on the web. */
+export function useOpenExternalUrl(): (url: string) => void {
+    const geolibreApp = useGeoLibreApp();
+    return (url) => {
+        if (geolibreApp.openExternalUrl) {
+            geolibreApp.openExternalUrl(url);
+        } else {
+            window.open(url, "_blank", "noopener");
+        }
+    };
+}

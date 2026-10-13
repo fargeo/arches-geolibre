@@ -8,7 +8,7 @@ needs an Arches 8.2 that includes three core PRs:
 - [archesproject/arches#13013](https://github.com/archesproject/arches/pull/13013): tile deletion through the API
 
 Until those merge, use a local branch with all three merged onto
-`dev/8.2.x`.
+`dev/8.2.x`. For browser sign-in, also merge in [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in).
 
 The instance contains:
 
@@ -22,7 +22,8 @@ The instance contains:
     - Every resource has a `Location` (a point, line or polygon). About 10% of
       those tiles hold two features.
     - About 20% of resources also have an `Extent` polygon.
-- **An OAuth application** (client id `arches-geolibre-test`, password grant).
+- **Two OAuth applications**: `arches-geolibre-test-device` for browser
+  (device code) sign-in, and `arches-geolibre-test` for password sign-in.
 - **Three users**, all with password `geolibre-test-password`:
 
     | User                   | Groups                             | Can                                                    |

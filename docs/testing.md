@@ -3,12 +3,12 @@
 There are three automated layers plus a manual pass in GeoLibre Desktop. Each
 covers something the others can't.
 
-| Layer         | Command                    | Needs                                    | Covers                                                                                                                   |
-| ------------- | -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Unit          | `npm test`                 | nothing                                  | diffing, feature keys, tile rebuilds                                                                                     |
-| Integration   | `npm run test:integration` | test Arches on :8002                     | sign-in and refresh, catalog, loading, every push path, permissions, against real Arches                                 |
-| Browser (e2e) | `npm run test:e2e`         | test Arches on :8002, GeoLibre web build | plugin loading, panel UI, sign-in through the UI, adding a layer, a real GeoEditor session, edit-session detection, push |
-| Manual        | see below                  | GeoLibre Desktop                         | `nativeFetch`, the OS keychain, theme fit, edits too fiddly to script (vertex drags, split, merge)                       |
+| Layer         | Command                    | Needs                                    | Covers                                                                                                                                                                                                    |
+| ------------- | -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | `npm test`                 | nothing                                  | diffing, feature keys, tile rebuilds, browser sign-in polling                                                                                                                                             |
+| Integration   | `npm run test:integration` | test Arches on :8002                     | browser and password sign-in, refresh, catalog, loading, every push path, permissions, against real Arches                                                                                                |
+| Browser (e2e) | `npm run test:e2e`         | test Arches on :8002, GeoLibre web build | plugin loading, panel UI, browser and password sign-in, adding a layer, a real GeoEditor session, edit-session detection, push                                                                            |
+| Manual        | see below                  | GeoLibre Desktop                         | `nativeFetch`, the OS keychain, browser sign-in opening the system browser (and whether GeoLibre reports its waiting polls as errors), theme fit, edits too fiddly to script (vertex drags, split, merge) |
 
 The browser suite runs GeoLibre's **web** build. In the web build there is no
 `nativeFetch`, so requests to Arches are cross-origin and rely on the test
@@ -75,11 +75,13 @@ its test instance.
    scanned at startup.
 4. Open **Plugins → Installed → Arches**. The Arches panel docks beside
    Layers.
-5. Sign in:
-    - **Arches URL:** `http://localhost:8002`
-    - **Username:** `geolibre_editor` (`geolibre_contributor` to see
-      provisional edits, `geolibre_viewer` for read only)
-    - **Password:** `geolibre-test-password`
+5. Sign in with **Arches URL** `http://localhost:8002`:
+    - **Sign in with browser** opens Arches in your browser. Sign in there,
+      check the code matches the panel, and approve.
+    - Or choose **Use a password instead**.
+    - Either way, use `geolibre_editor` (`geolibre_contributor` to see
+      provisional edits, `geolibre_viewer` for read only) with the password
+      `geolibre-test-password`.
 6. Work through the checklist in `docs/phase-0-spikes.md`, recording results
    there.
     - **Extent** (about 10,000 features) loads in a few seconds and is the

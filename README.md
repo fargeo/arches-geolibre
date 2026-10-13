@@ -41,8 +41,11 @@ To try the plugin on an existing Arches 8.2 instance, see
   [#13012](https://github.com/archesproject/arches/pull/13012) and
   [#13013](https://github.com/archesproject/arches/pull/13013). For released
   Arches 8.1, use the `main` branch.
-- `OAUTH_CLIENT_ID` set, and a matching OAuth application allowing the
-  resource-owner password grant
+- For browser sign-in: [archesproject/arches#13014](https://github.com/archesproject/arches/pull/13014) (device sign-in), with
+  `OAUTH_DEVICE_CLIENT_ID` set and a matching public OAuth application
+  allowing the device code grant
+- For password sign-in: `OAUTH_CLIENT_ID` set, and a matching public OAuth
+  application allowing the resource-owner password grant
 - Users who edit must be in the `Resource Editor` group
 
 ## Layout

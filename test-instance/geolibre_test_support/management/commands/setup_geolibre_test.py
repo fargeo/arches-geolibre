@@ -30,8 +30,10 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        if not settings.OAUTH_CLIENT_ID:
-            raise CommandError("Set OAUTH_CLIENT_ID in settings_local.py first.")
+        if not settings.OAUTH_CLIENT_ID or not settings.OAUTH_DEVICE_CLIENT_ID:
+            raise CommandError(
+                "Set OAUTH_CLIENT_ID and OAUTH_DEVICE_CLIENT_ID in settings_local.py first."
+            )
 
         self.import_test_model()
         self.create_spatial_view()
@@ -84,6 +86,18 @@ class Command(BaseCommand):
                 "name": OAUTH_APPLICATION_NAME,
                 "client_type": Application.CLIENT_PUBLIC,
                 "authorization_grant_type": Application.GRANT_PASSWORD,
+                "redirect_uris": "",
+                "user": User.objects.get(username="admin"),
+            },
+        )
+        # Browser sign-in (RFC 8628) needs its own application: an OAuth
+        # application allows only one grant type.
+        Application.objects.update_or_create(
+            client_id=settings.OAUTH_DEVICE_CLIENT_ID,
+            defaults={
+                "name": f"{OAUTH_APPLICATION_NAME} (browser sign-in)",
+                "client_type": Application.CLIENT_PUBLIC,
+                "authorization_grant_type": Application.GRANT_DEVICE_CODE,
                 "redirect_uris": "",
                 "user": User.objects.get(username="admin"),
             },
