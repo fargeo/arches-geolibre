@@ -137,3 +137,27 @@ contributor overlay. These need a person:
 
 If you add test users after building the instance, reindex first (see
 `test-instance/README.md`). Otherwise they won't see any resources.
+
+## Recording the demo
+
+`npm run demo:record` records a short video of the plugin in GeoLibre's web
+build:
+
+1. sign in;
+2. add the Extent layer and restyle it;
+3. find Kiln 24038 with Select by Expression and zoom to it;
+4. reshape its geometry;
+5. push the change.
+
+It writes `demo/arches-geolibre-demo.mp4`, or WebM if `ffmpeg` isn't
+installed. The `demo/` folder is git-ignored.
+
+- It needs the Arches test instance on :8002 and a GeoLibre checkout prepared
+  as for the browser suite (`scripts/prepare-geolibre-web.sh`).
+- It rebuilds the plugin into that checkout's web build and starts the preview
+  server if it isn't running. Set `DEMO_SKIP_BUILD=1` to reuse the current
+  build.
+- The edit really reaches Arches, so the script restores the resource's
+  geometry afterwards, even if the recording fails part-way.
+- Set `DEMO_RESOURCE_NAME` to edit another Extent polygon. `ARCHES_TEST_URL`,
+  `GEOLIBRE_DIR` and `GEOLIBRE_PORT` work as for the browser suite.

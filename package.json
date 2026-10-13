@@ -17,7 +17,8 @@
         "test:e2e": "playwright test",
         "gettext:extract": "rm -f src/arches_geolibre/locale/en/app.po && vue-gettext-extract && node scripts/normalize-catalog-header.mjs",
         "gettext:compile": "vue-gettext-compile",
-        "package:zip": "npm run build && node scripts/package-plugin.mjs"
+        "package:zip": "npm run build && node scripts/package-plugin.mjs",
+        "demo:record": "node scripts/record-demo.mjs"
     },
     "dependencies": {
         "@openvue/themes": "1.0.0",
