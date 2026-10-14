@@ -31,6 +31,17 @@ export class GeoJsonUnavailableError extends ArchesRequestError {
     }
 }
 
+/**
+ * Marks statuses a request expects, so GeoLibre's Diagnostics records them as
+ * information rather than errors. GeoLibre removes the header before sending:
+ * on the web from 3.4, and in Desktop's native fetch from opengeos/GeoLibre#3124.
+ */
+export function expectingStatuses(
+    ...statuses: number[]
+): Record<string, string> {
+    return { "x-geolibre-expected-status": statuses.join(",") };
+}
+
 export function normalizeInstanceUrl(instanceUrl: string): string {
     return instanceUrl.trim().replace(/\/+$/, "");
 }
@@ -300,10 +311,12 @@ export async function fetchTile(
     session: ArchesSession,
     tileId: string,
 ): Promise<ArchesTile | null> {
+    // A tile that's gone, or no longer readable, is a conflict, not a failure.
     const response = await authorizedFetch(
         fetchImplementation,
         session,
         `/api/tiles/${tileId}`,
+        { headers: expectingStatuses(403, 404) },
     );
     if (response.status === 403 || response.status === 404) {
         return null;

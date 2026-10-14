@@ -220,12 +220,22 @@ export async function signIn(
 export async function signInWithBrowser(
     page: Page,
     username: string,
+    { waitForPendingPoll = false } = {},
 ): Promise<void> {
     const panel = archesPanel(page);
     await panel.getByLabel("Arches URL").fill(ARCHES_TEST_URL);
     const codePagePromise = page.context().waitForEvent("page");
     await panel.getByRole("button", { name: "Sign in with browser" }).click();
     const userCode = await panel.locator(".user-code").textContent();
+    if (waitForPendingPoll) {
+        // Let the plugin poll before approving, so Arches answers "not yet".
+        await page.waitForResponse(
+            (response) =>
+                response.url().endsWith("/o/token/") &&
+                response.status() === 400,
+            { timeout: 30_000 },
+        );
+    }
 
     const codePage = await codePagePromise;
     await codePage.locator("input[name=username]").fill(username);

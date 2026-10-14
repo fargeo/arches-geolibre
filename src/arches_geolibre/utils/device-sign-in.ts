@@ -1,5 +1,6 @@
 import {
     ArchesRequestError,
+    expectingStatuses,
     normalizeInstanceUrl,
     sessionFromTokens,
 } from "@/arches_geolibre/utils/arches-client.ts";
@@ -45,8 +46,10 @@ export async function startDeviceSignIn(
     instanceUrl: string,
 ): Promise<DeviceSignIn> {
     const normalizedInstanceUrl = normalizeInstanceUrl(instanceUrl);
+    // 404 means the instance doesn't offer browser sign-in.
     const clientIdResponse = await fetchImplementation(
         `${normalizedInstanceUrl}/auth/device_client_id`,
+        { headers: expectingStatuses(404) },
     );
     if (clientIdResponse.status === 404) {
         throw new DeviceSignInError(
@@ -112,7 +115,8 @@ export async function waitForDeviceApproval(
             `${deviceSignIn.instanceUrl}/o/token/`,
             {
                 method: "POST",
-                headers: FORM_HEADERS,
+                // Arches answers 400 "authorization_pending" until approval.
+                headers: { ...FORM_HEADERS, ...expectingStatuses(400) },
                 body: new URLSearchParams({
                     grant_type: DEVICE_CODE_GRANT_TYPE,
                     device_code: deviceSignIn.deviceCode,

@@ -25,13 +25,18 @@ test("signs in through Arches in the browser", async ({ page }) => {
         }
     });
     await openArchesPanel(page);
-    await signInWithBrowser(page, CONTRIBUTOR_USERNAME);
+    await signInWithBrowser(page, CONTRIBUTOR_USERNAME, {
+        waitForPendingPoll: true,
+    });
 
     await expect(archesPanel(page)).toContainText(CONTRIBUTOR_USERNAME);
     // Until the user approves, Arches answers each poll with HTTP 400.
     expect(failedArchesRequests.filter((path) => path !== "/o/token/")).toEqual(
         [],
     );
+    // The plugin marks that 400 as expected, so GeoLibre doesn't report it.
+    await page.getByRole("button", { name: /Diagnostics/ }).click();
+    await expect(page.getByRole("dialog")).toContainText("0 errors");
 });
 
 test("keeps the sign-in across reloads only when asked to", async ({

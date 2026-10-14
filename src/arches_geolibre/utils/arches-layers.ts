@@ -182,8 +182,8 @@ function addStyledLayer(
 
 /**
  * Swaps a layer's features without a round trip to Arches, keeping its key
- * so its pending changes carry over. The plugin API can't update a layer in
- * place, so the GeoLibre layer is replaced.
+ * so its pending changes carry over. Hosts with updateGeoJsonLayer keep the
+ * same GeoLibre layer; older ones get a replacement layer.
  */
 export function replaceArchesLayerFeatures(
     geolibreApp: GeoLibreAppAPI,
@@ -196,14 +196,13 @@ export function replaceArchesLayerFeatures(
     },
 ): LoadedArchesLayer {
     const source = update.source ?? loadedLayer.source;
-    const layerId = addStyledLayer(
+    const layerId = replaceLayerContent(
         geolibreApp,
         session,
-        loadedLayer.node,
+        loadedLayer,
         source,
         update.features,
     );
-    removeLayer(geolibreApp, loadedLayer.layerId);
     return {
         ...loadedLayer,
         layerId,
@@ -489,6 +488,33 @@ export async function reloadArchesLayer(
     if (options.afterPush) {
         await waitForSearchIndex();
     }
+    const isWritable = loadedLayer.isWritable ?? true;
+    if (geolibreApp.updateGeoJsonLayer) {
+        const features = tagArchesFeatures(
+            await fetchSourceFeatures(
+                fetchImplementation,
+                session,
+                loadedLayer.node,
+                { source: loadedLayer.source, isWritable },
+            ),
+        ).features;
+        if (
+            geolibreApp.updateGeoJsonLayer(loadedLayer.layerId, {
+                type: "FeatureCollection",
+                features,
+            } as FeatureCollection)
+        ) {
+            return {
+                key: loadedLayer.key ?? crypto.randomUUID(),
+                layerId: loadedLayer.layerId,
+                node: loadedLayer.node,
+                source: loadedLayer.source,
+                isWritable,
+                baselineFeatures: structuredClone(features),
+                contentRevision: 0,
+            };
+        }
+    }
     const reloadedLayer = await loadArchesLayer(
         geolibreApp,
         fetchImplementation,
@@ -496,12 +522,43 @@ export async function reloadArchesLayer(
         loadedLayer.node,
         {
             source: loadedLayer.source,
-            isWritable: loadedLayer.isWritable ?? true,
+            isWritable,
             key: loadedLayer.key,
         },
     );
     removeLayer(geolibreApp, loadedLayer.layerId);
     return reloadedLayer;
+}
+
+/**
+ * Puts features in a loaded layer's place: in the same GeoLibre layer where
+ * the host can update one, otherwise in a new layer replacing it.
+ */
+function replaceLayerContent(
+    geolibreApp: GeoLibreAppAPI,
+    session: ArchesSession,
+    loadedLayer: LoadedArchesLayer,
+    source: ArchesLayerSource,
+    features: Feature<Geometry | null>[],
+): string {
+    const featureCollection = {
+        type: "FeatureCollection",
+        features,
+    } as FeatureCollection;
+    if (
+        geolibreApp.updateGeoJsonLayer?.(loadedLayer.layerId, featureCollection)
+    ) {
+        return loadedLayer.layerId;
+    }
+    const layerId = addStyledLayer(
+        geolibreApp,
+        session,
+        loadedLayer.node,
+        source,
+        features,
+    );
+    removeLayer(geolibreApp, loadedLayer.layerId);
+    return layerId;
 }
 
 /** Lets writes reach the search index before reading them back. */
@@ -512,15 +569,19 @@ export function waitForSearchIndex(): Promise<void> {
 }
 
 /**
- * The plugin API has no removeLayer. In GeoLibre 3.4.0
- * unregisterExternalNativeLayer removes any layer by id; this is the only
- * place the plugin relies on that.
+ * Removes a layer. Hosts without removeLayer (before opengeos/GeoLibre#3128)
+ * fall back to unregisterExternalNativeLayer, which in GeoLibre 3.4 removes
+ * any layer by id; this is the only place the plugin relies on that.
  */
 export function removeLayer(
     geolibreApp: GeoLibreAppAPI,
     layerId: string,
 ): void {
-    geolibreApp.unregisterExternalNativeLayer?.(layerId);
+    if (geolibreApp.removeLayer) {
+        geolibreApp.removeLayer(layerId);
+    } else {
+        geolibreApp.unregisterExternalNativeLayer?.(layerId);
+    }
 }
 
 export function featureBounds(

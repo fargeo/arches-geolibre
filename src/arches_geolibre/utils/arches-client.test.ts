@@ -1,6 +1,7 @@
 import {
     GeoJsonUnavailableError,
     fetchNodeFeatures,
+    fetchTile,
 } from "@/arches_geolibre/utils/arches-client.ts";
 
 import type { ArchesSession } from "@/arches_geolibre/types.ts";
@@ -25,5 +26,22 @@ describe("fetchNodeFeatures", () => {
         await expect(
             fetchNodeFeatures(failingArches, SESSION, "location"),
         ).rejects.toBeInstanceOf(GeoJsonUnavailableError);
+    });
+});
+
+describe("fetchTile", () => {
+    it("tells GeoLibre that a missing tile is expected, not an error", async () => {
+        const archesWithoutTheTile = vi.fn(
+            async (_url: RequestInfo | URL, _init?: RequestInit) =>
+                new Response("Not found", { status: 404 }),
+        );
+
+        expect(
+            await fetchTile(archesWithoutTheTile, SESSION, "tile"),
+        ).toBeNull();
+        const headers = new Headers(
+            archesWithoutTheTile.mock.calls[0][1]?.headers,
+        );
+        expect(headers.get("x-geolibre-expected-status")).toBe("403,404");
     });
 });
