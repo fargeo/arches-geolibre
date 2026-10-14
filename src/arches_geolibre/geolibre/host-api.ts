@@ -69,10 +69,11 @@ export interface GeoLibreAppAPI {
     /**
      * Replaces a GeoJSON layer's features in place, keeping its order, group,
      * style and visibility. Returns false, changing nothing, for an unknown or
-     * non-GeoJSON layer, or one being edited. Added by opengeos/GeoLibre#3128.
+     * non-GeoJSON layer, or one being edited. In GeoLibre after 3.4.0
+     * (opengeos/GeoLibre#3128).
      */
     updateGeoJsonLayer?: (layerId: string, data: FeatureCollection) => boolean;
-    /** Removes a layer, as the Layers panel does. Added by opengeos/GeoLibre#3128. */
+    /** Removes a layer, as the Layers panel does. In GeoLibre after 3.4.0 (opengeos/GeoLibre#3128). */
     removeLayer?: (layerId: string) => void;
     listLayers?: () => GeoLibreLayerSummary[];
     getLayers?: () => string[];

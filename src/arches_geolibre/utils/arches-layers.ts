@@ -569,8 +569,9 @@ export function waitForSearchIndex(): Promise<void> {
 }
 
 /**
- * Removes a layer. Hosts without removeLayer (before opengeos/GeoLibre#3128)
- * fall back to unregisterExternalNativeLayer, which in GeoLibre 3.4 removes
+ * Removes a layer. Hosts without removeLayer (GeoLibre 3.4.0 and earlier;
+ * added by opengeos/GeoLibre#3128, merged for the next release) fall back to
+ * unregisterExternalNativeLayer, which in GeoLibre 3.4 removes
  * any layer by id; this is the only place the plugin relies on that.
  */
 export function removeLayer(

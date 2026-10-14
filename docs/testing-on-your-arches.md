@@ -151,12 +151,14 @@ resources you've created.
 - **Browser sign-in may add errors to GeoLibre Desktop's Diagnostics.** While
   it waits for you to approve, the plugin checks with Arches every few
   seconds, and Arches answers "not yet" with an HTTP 400. The plugin marks
-  those answers as expected. GeoLibre on the web already honors that; GeoLibre
-  Desktop will from the release that includes
+  those answers as expected. GeoLibre on the web already honors that.
+  GeoLibre Desktop will from its next release after 3.4.0, which includes
   [opengeos/GeoLibre#3124](https://github.com/opengeos/GeoLibre/pull/3124).
   Until then, Desktop lists each one as an error, which can be ignored.
 - **Changes you untick stay visible on the map** until the push reloads the
-  layer. GeoLibre gives plugins no way to update a layer in place.
+  layer. GeoLibre's next release lets plugins update a layer in place
+  ([opengeos/GeoLibre#3128](https://github.com/opengeos/GeoLibre/pull/3128)),
+  which a later version of the plugin will use to put unticked changes back.
 
 Please report problems with what you were doing, the Arches version and
 build, and a screenshot of the Arches panel. If something failed, add

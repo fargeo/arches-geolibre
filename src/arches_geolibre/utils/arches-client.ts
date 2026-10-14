@@ -34,7 +34,8 @@ export class GeoJsonUnavailableError extends ArchesRequestError {
 /**
  * Marks statuses a request expects, so GeoLibre's Diagnostics records them as
  * information rather than errors. GeoLibre removes the header before sending:
- * on the web from 3.4, and in Desktop's native fetch from opengeos/GeoLibre#3124.
+ * on the web from 3.4, and in Desktop's native fetch from the release after
+ * 3.4.0 (opengeos/GeoLibre#3124, merged).
  */
 export function expectingStatuses(
     ...statuses: number[]

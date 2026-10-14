@@ -34,9 +34,12 @@ test("signs in through Arches in the browser", async ({ page }) => {
     expect(failedArchesRequests.filter((path) => path !== "/o/token/")).toEqual(
         [],
     );
-    // The plugin marks that 400 as expected, so GeoLibre doesn't report it.
+    // The plugin marks that 400 as expected, so GeoLibre records it as
+    // information, which Diagnostics doesn't list by default.
     await page.getByRole("button", { name: /Diagnostics/ }).click();
-    await expect(page.getByRole("dialog")).toContainText("0 errors");
+    const diagnostics = page.getByRole("dialog");
+    await expect(diagnostics).toContainText("Recent network requests");
+    await expect(diagnostics).not.toContainText(`${ARCHES_TEST_URL}/o/token/`);
 });
 
 test("keeps the sign-in across reloads only when asked to", async ({

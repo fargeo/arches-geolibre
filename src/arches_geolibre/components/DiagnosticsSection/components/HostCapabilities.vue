@@ -10,6 +10,8 @@ const HOST_MEMBERS_TO_PROBE = [
     "onSelectionChange",
     "onActiveMapToolChange",
     "registerRightPanel",
+    "updateGeoJsonLayer",
+    "removeLayer",
     "unregisterExternalNativeLayer",
     "nativeFetch",
     "credentials",
