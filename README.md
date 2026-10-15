@@ -62,6 +62,8 @@ app.
 - **Resource-first editing:** pick resources, including those with no
   geometry yet, which no spatial view can show, and draw their geometry, copy
   it from another layer, or edit what they have.
+- **Overview layers:** see a large node at once from Arches' map tiles,
+  limited to what the signed-in user may read (GeoLibre after 3.4.0).
 
 ## Arches requirements
 

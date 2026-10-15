@@ -1,5 +1,7 @@
 import { PANEL_ID, PLUGIN_ID } from "@/arches_geolibre/constants.ts";
 import { createPanelApp } from "@/arches_geolibre/create-panel-app.ts";
+import { syncWorkspaceOverviewHeaders } from "@/arches_geolibre/utils/arches-session.ts";
+import { syncOverviewHeaders } from "@/arches_geolibre/utils/overview-layers.ts";
 import {
     applyProjectState,
     createArchesWorkspace,
@@ -13,6 +15,7 @@ import type {
 
 const workspace = createArchesWorkspace();
 let unregisterPanel: (() => void) | null = null;
+let stopWatchingLayers: (() => void) | null = null;
 
 export const plugin: GeoLibrePlugin = {
     id: PLUGIN_ID,
@@ -30,24 +33,36 @@ export const plugin: GeoLibrePlugin = {
             dock: "right-of-layers",
             deactivatePluginOnClose: true,
             render(container: HTMLElement): () => void {
-                const { panelApp, stopFollowingLocale } = createPanelApp(
+                const { panelApp, disposePanelApp } = createPanelApp(
                     geolibreApp,
                     workspace,
                 );
                 panelApp.mount(container);
                 return () => {
-                    stopFollowingLocale();
+                    disposePanelApp();
                     panelApp.unmount();
                 };
             },
         });
+        // Overview layers get their sign-in back on reactivation, and drop out
+        // of the workspace when the user removes them in GeoLibre.
+        syncWorkspaceOverviewHeaders(geolibreApp, workspace);
+        stopWatchingLayers =
+            geolibreApp.onLayersChanged?.(() =>
+                syncWorkspaceOverviewHeaders(geolibreApp, workspace),
+            ) ?? null;
         geolibreApp.openRightPanel?.(PANEL_ID);
         return true;
     },
 
-    deactivate(): void {
+    deactivate(geolibreApp: GeoLibreAppAPI): void {
         unregisterPanel?.();
         unregisterPanel = null;
+        stopWatchingLayers?.();
+        stopWatchingLayers = null;
+        // The token shouldn't outlive the plugin: the overview layers stay on
+        // the map, showing what anyone may see, until the plugin is back.
+        syncOverviewHeaders(geolibreApp, workspace.overviewLayers, null);
     },
 
     getProjectState(): unknown {
@@ -55,10 +70,14 @@ export const plugin: GeoLibrePlugin = {
     },
 
     applyProjectState(
-        _geolibreApp: GeoLibreAppAPI,
+        geolibreApp: GeoLibreAppAPI,
         projectState: unknown,
     ): boolean {
-        return applyProjectState(workspace, projectState);
+        const isApplied = applyProjectState(workspace, projectState);
+        if (isApplied) {
+            syncWorkspaceOverviewHeaders(geolibreApp, workspace);
+        }
+        return isApplied;
     },
 };
 

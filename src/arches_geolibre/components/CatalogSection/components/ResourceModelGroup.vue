@@ -8,10 +8,12 @@ defineProps<{
     nodes: ArchesGeometryNode[];
     loadingEntryKey: string | null;
     isBusy: boolean;
+    canAddOverview: boolean;
 }>();
 
 const emit = defineEmits<{
     (event: "add", node: ArchesGeometryNode): void;
+    (event: "add-overview", node: ArchesGeometryNode): void;
     (event: "cancel"): void;
 }>();
 </script>
@@ -26,7 +28,9 @@ const emit = defineEmits<{
                 :label="node.name"
                 :is-loading="loadingEntryKey === node.nodeid"
                 :is-disabled="isBusy"
+                :can-add-overview="canAddOverview"
                 @add="emit('add', node)"
+                @add-overview="emit('add-overview', node)"
                 @cancel="emit('cancel')"
             />
         </ul>

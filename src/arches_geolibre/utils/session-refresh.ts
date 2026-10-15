@@ -12,16 +12,29 @@ export interface SessionStore {
     expire(): void;
 }
 
+export interface SessionRefresher {
+    /**
+     * Fetch whose authorized requests to the signed-in instance always carry
+     * a current token.
+     */
+    fetch: typeof fetch;
+    /**
+     * Refreshes the token if it's about to expire, for requests that don't go
+     * through `fetch`, such as map tiles. Resolves once any refresh is done.
+     */
+    refreshIfDue(): Promise<void>;
+}
+
 /**
- * Wraps fetch so authorized requests to the signed-in instance always carry
- * a current token, refreshing it shortly before it expires. Arches doesn't
- * reject an expired token with 401: it treats the request as the anonymous
- * user, so reads quietly return less. Refreshing ahead of expiry avoids that.
+ * Keeps the session's token current, refreshing it shortly before it expires.
+ * Arches doesn't reject an expired token with 401: it treats the request as
+ * the anonymous user, so reads quietly return less. Refreshing ahead of
+ * expiry avoids that. Concurrent callers share one refresh.
  */
-export function createRefreshingFetch(
+export function createSessionRefresher(
     baseFetch: typeof fetch,
     sessionStore: SessionStore,
-): typeof fetch {
+): SessionRefresher {
     let pendingRefresh: Promise<ArchesSession> | null = null;
 
     function refreshOnce(session: ArchesSession): Promise<ArchesSession> {
@@ -40,7 +53,14 @@ export function createRefreshingFetch(
         return pendingRefresh;
     }
 
-    return async (input, init) => {
+    async function refreshIfDue(): Promise<void> {
+        const session = sessionStore.current();
+        if (session && sessionNeedsRefresh(session)) {
+            await refreshOnce(session).catch(() => undefined);
+        }
+    }
+
+    const refreshingFetch: typeof fetch = async (input, init) => {
         const session = sessionStore.current();
         const headers = new Headers(init?.headers);
         const isAuthorizedArchesRequest =
@@ -55,4 +75,6 @@ export function createRefreshingFetch(
         headers.set("Authorization", `Bearer ${refreshedSession.accessToken}`);
         return baseFetch(input, { ...init, headers });
     };
+
+    return { fetch: refreshingFetch, refreshIfDue };
 }

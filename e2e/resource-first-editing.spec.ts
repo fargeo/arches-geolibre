@@ -69,6 +69,31 @@ test("gives a resource with no geometry its first geometry by drawing it", async
     }
 });
 
+test("opens the editor on the worklist layer from Draw geometry", async ({
+    page,
+}) => {
+    await openArchesPanel(page);
+    await signIn(page, EDITOR_USERNAME);
+    await startLocationWorklist(page);
+    await addMissingResource(page, NO_LOCATION_TILE);
+
+    const drawGeometry = editResourcesSection(page).getByRole("button", {
+        name: "Draw geometry",
+    });
+    test.skip(
+        (await drawGeometry.count()) === 0,
+        "Needs GeoLibre's startEditSession (opengeos/GeoLibre#3138).",
+    );
+    await drawGeometry.click();
+
+    await expect(page.locator(".geo-editor-toolbar")).toBeVisible();
+    const row = layerRow(page, WORKLIST_LAYER_NAME);
+    await row.getByRole("button", { name: "Layer actions" }).click();
+    await page
+        .getByRole("menuitem", { name: "Finish editing geometry", exact: true })
+        .click();
+});
+
 test("uses a surveyed outline from another layer as a resource's geometry", async ({
     page,
     request,

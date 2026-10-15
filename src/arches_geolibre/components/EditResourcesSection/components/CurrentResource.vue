@@ -24,11 +24,15 @@ const {
     resourceIdsWithPendingChanges,
     copyFeatures,
     zoomToCurrent,
+    canEditInPlace,
+    editCurrentGeometry,
 } = useWorklist();
 const { $gettext, $ngettext } = useGettext();
 
 const copyMessage = ref("");
 const copyMessageSeverity = ref<"success" | "warn">("success");
+const isOpeningEditor = ref(false);
+const editorMessage = ref("");
 
 const layerName = computed(() =>
     worklistLayer.value
@@ -55,8 +59,24 @@ watch(
     () => current.value?.resourceInstanceId,
     () => {
         copyMessage.value = "";
+        editorMessage.value = "";
     },
 );
+
+async function openEditor(): Promise<void> {
+    isOpeningEditor.value = true;
+    editorMessage.value = "";
+    try {
+        if (!(await editCurrentGeometry())) {
+            editorMessage.value = $gettext(
+                "GeoLibre couldn't open the editor. Open ⋯ → Edit geometry on “%{layer}” instead.",
+                { layer: layerName.value },
+            );
+        }
+    } finally {
+        isOpeningEditor.value = false;
+    }
+}
 
 function useSelectedFeatures(): void {
     if (!current.value) {
@@ -127,6 +147,21 @@ function skip(): void {
                 )
             }}
         </small>
+        <small v-else-if="canEditInPlace && current.hasGeometry">
+            {{
+                $gettext("Edit its %{node}, then save the edit session.", {
+                    node: worklist.node.name,
+                })
+            }}
+        </small>
+        <small v-else-if="canEditInPlace">
+            {{
+                $gettext(
+                    "It has no %{node} yet. Draw it, then save the edit session: whatever you draw goes to this resource. Or select features in another layer and use them.",
+                    { node: worklist.node.name },
+                )
+            }}
+        </small>
         <small v-else-if="current.hasGeometry">
             {{
                 $gettext(
@@ -144,6 +179,18 @@ function skip(): void {
             }}
         </small>
         <div class="current-actions">
+            <Button
+                v-if="canEditInPlace && current.canEdit !== false"
+                :label="
+                    current.hasGeometry
+                        ? $gettext('Edit geometry')
+                        : $gettext('Draw geometry')
+                "
+                :loading="isOpeningEditor"
+                size="small"
+                severity="secondary"
+                @click="openEditor"
+            />
             <Button
                 v-if="current.hasGeometry"
                 :label="$gettext('Zoom to')"
@@ -184,6 +231,13 @@ function skip(): void {
             size="small"
         >
             {{ copyMessage }}
+        </Message>
+        <Message
+            v-if="editorMessage"
+            severity="warn"
+            size="small"
+        >
+            {{ editorMessage }}
         </Message>
     </div>
 </template>

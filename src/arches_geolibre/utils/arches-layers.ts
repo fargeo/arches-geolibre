@@ -167,6 +167,16 @@ function addStyledLayer(
         { type: "FeatureCollection", features } as FeatureCollection,
         archesSourcePath(session, node.nodeid, source),
     );
+    applyArchesStyle(geolibreApp, layerId, node);
+    return layerId;
+}
+
+/** Styles a GeoLibre layer as Arches styles the node. */
+export function applyArchesStyle(
+    geolibreApp: GeoLibreAppAPI,
+    layerId: string,
+    node: ArchesGeometryNode,
+): void {
     const styleResult = geolibreApp.importLayerStyle?.(
         layerId,
         buildArchesLayerStyle(node.config),
@@ -177,7 +187,6 @@ function addStyledLayer(
             styleResult.warnings,
         );
     }
-    return layerId;
 }
 
 /**

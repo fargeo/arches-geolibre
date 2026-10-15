@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 
+import type { OverviewLayer } from "@/arches_geolibre/utils/overview-layers.ts";
 import type { TrackedReviewTile } from "@/arches_geolibre/utils/pending-review.ts";
 import type { PendingChange } from "@/arches_geolibre/utils/push-plan.ts";
 import type { Worklist } from "@/arches_geolibre/utils/worklist.ts";
@@ -22,6 +23,8 @@ interface ArchesProjectState {
     instanceUrl: string;
     layers: SavedArchesLayer[];
     worklist?: Worklist | null;
+    /** GeoLibre saves the layers; this lets their sign-in be restored. */
+    overviewLayers?: OverviewLayer[];
 }
 
 /**
@@ -47,6 +50,8 @@ export interface ArchesWorkspace {
     /** Each loaded layer's pending changes, by the layer's key. */
     pendingChangesByLayerKey: Record<string, PendingChange[]>;
     worklist: Worklist | null;
+    /** Read-only layers drawing nodes from Arches' vector tiles. */
+    overviewLayers: OverviewLayer[];
 }
 
 export function createArchesWorkspace(): ArchesWorkspace {
@@ -61,6 +66,7 @@ export function createArchesWorkspace(): ArchesWorkspace {
         awaitingReviewLayerId: null,
         pendingChangesByLayerKey: {},
         worklist: null,
+        overviewLayers: [],
     });
 }
 
@@ -79,6 +85,7 @@ export function toProjectState(
         instanceUrl,
         layers: [...loadedLayers, ...workspace.savedLayers],
         worklist: workspace.worklist,
+        overviewLayers: workspace.overviewLayers,
     };
 }
 
@@ -94,6 +101,7 @@ export function applyProjectState(
     workspace.savedLayers = projectState.layers;
     workspace.pendingChangesByLayerKey = {};
     workspace.worklist = projectState.worklist ?? null;
+    workspace.overviewLayers = projectState.overviewLayers ?? [];
     return true;
 }
 

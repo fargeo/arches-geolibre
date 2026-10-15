@@ -6,10 +6,13 @@ defineProps<{
     label: string;
     isLoading: boolean;
     isDisabled: boolean;
+    /** Offers a read-only overview from Arches' vector tiles as well. */
+    canAddOverview?: boolean;
 }>();
 
 const emit = defineEmits<{
     (event: "add"): void;
+    (event: "add-overview"): void;
     (event: "cancel"): void;
 }>();
 </script>
@@ -30,14 +33,29 @@ const emit = defineEmits<{
                 @click="emit('cancel')"
             />
         </template>
-        <Button
-            v-else
-            :label="$gettext('Add')"
-            :aria-label="$gettext('Add %{label} to the map', { label })"
-            size="small"
-            :disabled="isDisabled"
-            @click="emit('add')"
-        />
+        <template v-else>
+            <Button
+                v-if="canAddOverview"
+                :label="$gettext('Overview')"
+                :aria-label="
+                    $gettext(
+                        'Add a read-only overview of %{label} from map tiles',
+                        { label },
+                    )
+                "
+                size="small"
+                severity="secondary"
+                :disabled="isDisabled"
+                @click="emit('add-overview')"
+            />
+            <Button
+                :label="$gettext('Add')"
+                :aria-label="$gettext('Add %{label} to the map', { label })"
+                size="small"
+                :disabled="isDisabled"
+                @click="emit('add')"
+            />
+        </template>
     </li>
 </template>
 

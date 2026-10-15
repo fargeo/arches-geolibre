@@ -22,6 +22,10 @@ import {
 } from "@/arches_geolibre/utils/arches-client.ts";
 import { loadArchesLayer } from "@/arches_geolibre/utils/arches-layers.ts";
 import { groupNodesByResourceModel } from "@/arches_geolibre/utils/catalog.ts";
+import {
+    addOverviewLayer,
+    canAddOverviewLayers,
+} from "@/arches_geolibre/utils/overview-layers.ts";
 
 import type {
     ArchesGeometryNode,
@@ -46,6 +50,7 @@ const hasCatalogFailed = ref(false);
 const loadingLayerName = ref("");
 const receivedByteCount = ref(0);
 const infoMessage = ref("");
+const canAddOverview = canAddOverviewLayers(geolibreApp);
 
 let loadAbortController: AbortController | null = null;
 
@@ -93,6 +98,24 @@ async function fetchCatalog(session: ArchesSession): Promise<void> {
 
 function addNode(node: ArchesGeometryNode): Promise<void> {
     return addToMap(node.nodeid, node, { kind: "node" });
+}
+
+function addOverview(node: ArchesGeometryNode): void {
+    if (!workspace.session) {
+        return;
+    }
+    errorMessage.value = "";
+    infoMessage.value = "";
+    try {
+        workspace.overviewLayers.push(
+            addOverviewLayer(geolibreApp, workspace.session, node),
+        );
+    } catch (error) {
+        errorMessage.value = $gettext(
+            "Could not add an overview of %{name}. %{reason}",
+            { name: node.name, reason: describeRequestError(error) },
+        );
+    }
 }
 
 function addSpatialView(spatialView: ArchesSpatialView): Promise<void> {
@@ -165,6 +188,13 @@ function cancelLoading(): void {
     <section class="catalog-section">
         <h3>{{ $gettext("Add Arches data") }}</h3>
         <p v-if="isFetchingCatalog">{{ $gettext("Loading the catalog…") }}</p>
+        <small v-if="canAddOverview && resourceModelGroups.length > 0">
+            {{
+                $gettext(
+                    "Add loads a layer for editing. Overview shows a large layer at once from Arches' map tiles, read-only.",
+                )
+            }}
+        </small>
         <ResourceModelGroup
             v-for="group in resourceModelGroups"
             :key="group.graphId"
@@ -172,7 +202,9 @@ function cancelLoading(): void {
             :nodes="group.nodes"
             :loading-entry-key="loadingEntryKey"
             :is-busy="loadingEntryKey !== null"
+            :can-add-overview="canAddOverview"
             @add="addNode"
+            @add-overview="addOverview"
             @cancel="cancelLoading"
         />
         <SpatialViewList

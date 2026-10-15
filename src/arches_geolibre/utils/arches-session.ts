@@ -1,5 +1,6 @@
 import { CREDENTIAL_SESSION_NAME } from "@/arches_geolibre/constants.ts";
 import { removeLayer } from "@/arches_geolibre/utils/arches-layers.ts";
+import { syncOverviewHeaders } from "@/arches_geolibre/utils/overview-layers.ts";
 import { loadTrackedReviewTiles } from "@/arches_geolibre/utils/pending-review.ts";
 
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
@@ -47,6 +48,25 @@ export function endSession(
         removeLayer(geolibreApp, workspace.awaitingReviewLayerId);
         workspace.awaitingReviewLayerId = null;
     }
+    syncWorkspaceOverviewHeaders(geolibreApp, workspace);
+}
+
+/**
+ * Gives the overview layers' tiles the current token, or none when signed
+ * out. Runs whenever the session changes, including a token refresh.
+ */
+export function syncWorkspaceOverviewHeaders(
+    geolibreApp: GeoLibreAppAPI,
+    workspace: ArchesWorkspace,
+): void {
+    if (workspace.overviewLayers.length === 0) {
+        return;
+    }
+    workspace.overviewLayers = syncOverviewHeaders(
+        geolibreApp,
+        workspace.overviewLayers,
+        workspace.session,
+    );
 }
 
 export function workspaceSessionStore(
@@ -73,4 +93,5 @@ function saveSession(
         workspace.isSessionSaved ? JSON.stringify(session) : "",
     );
     workspace.session = session;
+    syncWorkspaceOverviewHeaders(geolibreApp, workspace);
 }

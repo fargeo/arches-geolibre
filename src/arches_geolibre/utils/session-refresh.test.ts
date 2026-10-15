@@ -1,4 +1,4 @@
-import { createRefreshingFetch } from "@/arches_geolibre/utils/session-refresh.ts";
+import { createSessionRefresher } from "@/arches_geolibre/utils/session-refresh.ts";
 
 import type { ArchesSession } from "@/arches_geolibre/types.ts";
 
@@ -69,12 +69,12 @@ function makeStore(session: ArchesSession | null) {
 
 const authorized = { headers: { Authorization: "Bearer old-token" } };
 
-describe("createRefreshingFetch", () => {
+describe("createSessionRefresher", () => {
     it("sends requests unchanged while the token is current", async () => {
         const { baseFetch, sentTokens } = fakeArches();
         const store = makeStore(makeSession(3_600_000));
 
-        await createRefreshingFetch(baseFetch, store)(
+        await createSessionRefresher(baseFetch, store).fetch(
             `${INSTANCE_URL}/api/tiles/1`,
             authorized,
         );
@@ -86,7 +86,7 @@ describe("createRefreshingFetch", () => {
     it("refreshes once for concurrent requests near expiry", async () => {
         const { baseFetch, sentTokens } = fakeArches();
         const store = makeStore(makeSession(10_000));
-        const archesFetch = createRefreshingFetch(baseFetch, store);
+        const archesFetch = createSessionRefresher(baseFetch, store).fetch;
 
         await Promise.all([
             archesFetch(`${INSTANCE_URL}/api/tiles/1`, authorized),
@@ -105,7 +105,7 @@ describe("createRefreshingFetch", () => {
     it("leaves unauthenticated and other-site requests alone", async () => {
         const { baseFetch } = fakeArches();
         const store = makeStore(makeSession(10_000));
-        const archesFetch = createRefreshingFetch(baseFetch, store);
+        const archesFetch = createSessionRefresher(baseFetch, store).fetch;
 
         await archesFetch(`${INSTANCE_URL}/auth/device_client_id`);
         await archesFetch("https://elsewhere.example.org/api", authorized);
@@ -121,7 +121,7 @@ describe("createRefreshingFetch", () => {
         const store = makeStore(makeSession(10_000));
 
         await expect(
-            createRefreshingFetch(baseFetch, store)(
+            createSessionRefresher(baseFetch, store).fetch(
                 `${INSTANCE_URL}/api/tiles/1`,
                 authorized,
             ),
@@ -129,5 +129,25 @@ describe("createRefreshingFetch", () => {
 
         expect(store.expired).toBe(true);
         expect(sentTokens).toEqual([]);
+    });
+
+    it("refreshes a token about to expire for requests it doesn't make", async () => {
+        const { baseFetch } = fakeArches();
+        const freshStore = makeStore(makeSession(3_600_000));
+        await createSessionRefresher(baseFetch, freshStore).refreshIfDue();
+        expect(baseFetch).not.toHaveBeenCalled();
+
+        const expiringStore = makeStore(makeSession(10_000));
+        await createSessionRefresher(baseFetch, expiringStore).refreshIfDue();
+        expect(expiringStore.session?.refreshToken).toBe("new-refresh-token");
+    });
+
+    it("ends the session quietly when a refresh for tiles is refused", async () => {
+        const { baseFetch } = fakeArches({ refreshSucceeds: false });
+        const store = makeStore(makeSession(10_000));
+
+        await createSessionRefresher(baseFetch, store).refreshIfDue();
+
+        expect(store.expired).toBe(true);
     });
 });

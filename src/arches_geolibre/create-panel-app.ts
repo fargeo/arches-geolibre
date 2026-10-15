@@ -14,12 +14,14 @@ import {
 } from "@/arches_geolibre/i18n.ts";
 import { ArchesGeoLibrePreset } from "@/arches_geolibre/theme.ts";
 import { workspaceSessionStore } from "@/arches_geolibre/utils/arches-session.ts";
-import { createRefreshingFetch } from "@/arches_geolibre/utils/session-refresh.ts";
+import { createSessionRefresher } from "@/arches_geolibre/utils/session-refresh.ts";
 import { createRetryingFetch } from "@/arches_geolibre/utils/transient-retry.ts";
 
 import type { App } from "vue";
 import type { GeoLibreAppAPI } from "@/arches_geolibre/geolibre/host-api.ts";
 import type { ArchesWorkspace } from "@/arches_geolibre/workspace.ts";
+
+const TILE_TOKEN_CHECK_MILLISECONDS = 60_000;
 
 /**
  * OpenVue injects its theme as global <style> tags. They stay unlayered: in a
@@ -32,7 +34,7 @@ import type { ArchesWorkspace } from "@/arches_geolibre/workspace.ts";
 export function createPanelApp(
     geolibreApp: GeoLibreAppAPI,
     workspace: ArchesWorkspace,
-): { panelApp: App; stopFollowingLocale: () => void } {
+): { panelApp: App; disposePanelApp: () => void } {
     const gettext = createPluginGettext(geolibreApp);
     const panelApp = createApp(ArchesPanel);
     panelApp.use(OpenVue, {
@@ -47,16 +49,26 @@ export function createPanelApp(
     panelApp.use(gettext);
     panelApp.provide(GEOLIBRE_APP_KEY, geolibreApp);
     panelApp.provide(WORKSPACE_KEY, workspace);
-    panelApp.provide(
-        ARCHES_FETCH_KEY,
-        createRefreshingFetch(
-            createRetryingFetch(hostFetch(geolibreApp)),
-            workspaceSessionStore(geolibreApp, workspace),
-        ),
+    const sessionRefresher = createSessionRefresher(
+        createRetryingFetch(hostFetch(geolibreApp)),
+        workspaceSessionStore(geolibreApp, workspace),
     );
+    panelApp.provide(ARCHES_FETCH_KEY, sessionRefresher.fetch);
+    // Map tiles don't go through the plugin's fetch, so an overview layer
+    // alone would let the token expire and quietly fall back to what anyone
+    // may see. Refresh it ahead of time while there's an overview to keep.
+    const tileTokenTimer = setInterval(() => {
+        if (workspace.overviewLayers.length > 0) {
+            void sessionRefresher.refreshIfDue();
+        }
+    }, TILE_TOKEN_CHECK_MILLISECONDS);
+    const stopFollowingLocale = followGeoLibreLocale(gettext, geolibreApp);
     return {
         panelApp,
-        stopFollowingLocale: followGeoLibreLocale(gettext, geolibreApp),
+        disposePanelApp: () => {
+            clearInterval(tileTokenTimer);
+            stopFollowingLocale();
+        },
     };
 }
 

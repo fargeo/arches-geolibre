@@ -61,6 +61,11 @@ includes and how to install it.
     over HTTPS: browsers block an HTTPS page from calling a plain-HTTP
     address.
 
+    **Overview layers on GeoLibre Desktop need this too.** The map fetches
+    their tiles itself, from the desktop app's own origin, so add
+    `"tauri://localhost"` (macOS and Linux) and `"http://tauri.localhost"`
+    (Windows) as well if Desktop users will add overviews.
+
 ## 2. Install the plugin
 
 ### GeoLibre Desktop
@@ -112,6 +117,11 @@ read them, so it's off by default. On a shared computer, leave it off.
    spatial view. The whole node loads, and the map zooms to it.
     - Large nodes take a while: about 11 seconds for 55,000 features on a
       local test instance.
+    - To just see a large node, choose **Overview** instead. It draws the node
+      straight away from Arches' map tiles, showing what you're allowed to
+      see, but can't be edited. Overview needs a GeoLibre release after
+      3.4.0, and the button only appears when GeoLibre supports it. Closing
+      the Arches panel signs the overview out until you open it again.
 3. **To edit,** open the layer's **⋯ → Edit geometry**. Zoom in before
    drawing: the editor can't draw on the zoomed-out globe. Edit with the
    GeoEditor toolbar, then **⋯ → Finish editing geometry**. Changes appear
@@ -130,9 +140,11 @@ read them, so it's off by default. On a shared computer, leave it off.
       geometry in that node), **Search** (by name), or **From the map** (the
       resources of features you've selected).
     - Work through the worklist one resource at a time:
-        - **Draw** it on the _(worklist)_ layer with **⋯ → Edit geometry**,
-          and save the edit session. Whatever you draw goes to the current
-          resource.
+        - **Draw** it on the _(worklist)_ layer, and save the edit session.
+          Whatever you draw goes to the current resource. With a GeoLibre
+          release after 3.4.0, **Draw geometry** (or **Edit geometry**)
+          opens the editor for you; otherwise use the layer's **⋯ → Edit
+          geometry**.
         - Or select features in any other layer, such as a survey shapefile or
           GPS track, and choose **Use the selected feature**.
         - Or, for a resource that already has geometry, **Zoom to** it and
@@ -146,7 +158,8 @@ resources you've created.
 ## Known limitations
 
 - **Layers load whole nodes.** `/geojson` has no map-area filter yet, so a
-  very large node can take a while to load.
+  very large node can take a while to load. To look at one without editing
+  it, use **Overview**, which draws it from map tiles straight away.
 - **Spatial views load their geometry only**, not their attribute columns.
 - **Browser sign-in may add errors to GeoLibre Desktop's Diagnostics.** While
   it waits for you to approve, the plugin checks with Arches every few

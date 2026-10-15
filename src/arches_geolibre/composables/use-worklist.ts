@@ -16,6 +16,7 @@ import {
     replaceArchesLayerFeatures,
 } from "@/arches_geolibre/utils/arches-layers.ts";
 import { copyFeaturesForArches } from "@/arches_geolibre/utils/copy-features.ts";
+import { isLayerBeingEdited } from "@/arches_geolibre/utils/edit-sessions.ts";
 import { tagArchesFeatures } from "@/arches_geolibre/utils/feature-keys.ts";
 import { affectedResourceId } from "@/arches_geolibre/utils/push-plan.ts";
 import {
@@ -158,7 +159,10 @@ export function useWorklist() {
             newResourceIds,
         );
         const newFeatures = [...geometryByResource.values()].flat();
-        if (newFeatures.length > 0 && isBeingEdited(loadedLayer)) {
+        if (
+            newFeatures.length > 0 &&
+            isLayerBeingEdited(geolibreApp, loadedLayer.layerId)
+        ) {
             throw new LayerBeingEditedError();
         }
 
@@ -245,7 +249,7 @@ export function useWorklist() {
         if (!loadedLayer) {
             return { copiedCount: 0, skippedCount: features.length };
         }
-        if (isBeingEdited(loadedLayer)) {
+        if (isLayerBeingEdited(geolibreApp, loadedLayer.layerId)) {
             throw new LayerBeingEditedError();
         }
         const { copies, skippedCount } = copyFeaturesForArches(features);
@@ -277,6 +281,22 @@ export function useWorklist() {
         }
     }
 
+    /**
+     * Opens the GeoEditor on the worklist layer, zoomed to the current
+     * resource if it has geometry. Needs GeoLibre's startEditSession
+     * (opengeos/GeoLibre#3138); resolves false when the editor can't open.
+     */
+    async function editCurrentGeometry(): Promise<boolean> {
+        const loadedLayer = worklistLayer.value;
+        if (!loadedLayer || !geolibreApp.startEditSession) {
+            return false;
+        }
+        if (current.value?.hasGeometry) {
+            zoomToCurrent();
+        }
+        return geolibreApp.startEditSession(loadedLayer.layerId);
+    }
+
     /** Ends the worklist, removing its layer and any unpushed changes. */
     function finish(): void {
         const layerKey = workspace.worklist?.layerKey;
@@ -303,15 +323,6 @@ export function useWorklist() {
 
     // GeoLibre hides a layer while it's being edited, and the plugin API
     // offers no other sign; replacing the layer then would lose the edits.
-    function isBeingEdited(loadedLayer: LoadedArchesLayer): boolean {
-        return (
-            geolibreApp
-                .listLayers?.()
-                .find((summary) => summary.id === loadedLayer.layerId)
-                ?.visible === false
-        );
-    }
-
     function replaceLoadedLayer(updatedLayer: LoadedArchesLayer): void {
         workspace.loadedLayers = workspace.loadedLayers.map((candidate) =>
             candidate.key === updatedLayer.key ? updatedLayer : candidate,
@@ -327,6 +338,8 @@ export function useWorklist() {
         addResources,
         copyFeatures,
         zoomToCurrent,
+        canEditInPlace: geolibreApp.startEditSession !== undefined,
+        editCurrentGeometry,
         finish,
     };
 }

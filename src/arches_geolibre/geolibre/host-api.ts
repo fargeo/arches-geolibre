@@ -2,10 +2,11 @@
  * The subset of GeoLibre's plugin host contract this plugin uses.
  *
  * `@geolibre/plugins` is not published to npm, so these declarations are
- * copied from GeoLibre 3.4.0 `packages/plugins/src/types.ts` (MIT licensed,
- * Copyright (c) 2026 Qiusheng Wu). Every member that GeoLibre marks optional
- * stays optional here: call them with optional chaining so older hosts
- * degrade instead of throwing.
+ * copied from GeoLibre `packages/plugins/src/types.ts` (MIT licensed,
+ * Copyright (c) 2026 Qiusheng Wu): 3.4.0, plus members merged after it that
+ * are marked with their pull request. Every member that GeoLibre marks
+ * optional stays optional here: call them with optional chaining so older
+ * hosts degrade instead of throwing.
  */
 
 import type { Feature, FeatureCollection, Geometry } from "geojson";
@@ -31,6 +32,25 @@ export type GeoLibreActiveMapTool =
     "identify" | "feature-selection" | "geo-editor" | null;
 
 export type GeoLibreCredentialLocation = "keychain" | "browser";
+
+/** A GeoEditor session starting or ending (opengeos/GeoLibre#3138). */
+export type GeoLibreEditSessionChange =
+    | { layerId: string; state: "started" }
+    | { layerId: string; state: "ended"; saved: boolean };
+
+/** Options for addVectorTileLayer (opengeos/GeoLibre#3140, #3142). */
+export interface GeoLibreVectorTileLayerOptions {
+    sourceLayers: string[];
+    bounds?: [number, number, number, number];
+    minzoom?: number;
+    maxzoom?: number;
+    visible?: boolean;
+    opacity?: number;
+    beforeLayerId?: string;
+    metadata?: Record<string, unknown>;
+    /** Sent with the layer's tile requests; kept in memory for the session. */
+    headers?: Record<string, string>;
+}
 
 export interface GeoLibrePluginCredentials {
     get(name: string): string;
@@ -84,6 +104,35 @@ export interface GeoLibreAppAPI {
         callback: (selection: GeoLibreSelection) => void,
     ) => () => void;
     getActiveMapTool?: () => GeoLibreActiveMapTool;
+    /** The layer open in the GeoEditor, or null (opengeos/GeoLibre#3138). */
+    getEditSessionLayerId?: () => string | null;
+    /** Reports GeoEditor sessions starting and ending (opengeos/GeoLibre#3138). */
+    onEditSessionChange?: (
+        callback: (change: GeoLibreEditSessionChange) => void,
+    ) => () => void;
+    /**
+     * Opens a GeoEditor session on a layer, as its Edit geometry action does.
+     * Resolves false when it can't (opengeos/GeoLibre#3138).
+     */
+    startEditSession?: (layerId: string) => Promise<boolean>;
+    /**
+     * Adds a vector tile layer from a tile URL template or TileJSON URL and
+     * returns its id (opengeos/GeoLibre#3140). Throws on invalid options.
+     */
+    addVectorTileLayer?: (
+        name: string,
+        url: string,
+        options: GeoLibreVectorTileLayerOptions,
+    ) => string;
+    /**
+     * Replaces the headers sent with a tile layer's requests; null stops
+     * them. Returns false for an unknown layer or one without a tile URL;
+     * throws on an invalid header or an unscoped URL (opengeos/GeoLibre#3142).
+     */
+    setLayerRequestHeaders?: (
+        layerId: string,
+        headers: Record<string, string> | null,
+    ) => boolean;
     onActiveMapToolChange?: (
         callback: (tool: GeoLibreActiveMapTool) => void,
     ) => () => void;

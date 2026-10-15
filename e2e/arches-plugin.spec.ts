@@ -205,3 +205,43 @@ test("lets a contributor attach a drawing to a found resource and see it awaitin
     ).toContainText("waiting for a reviewer");
     await expect(layerRow(page, "Awaiting review (read only)")).toBeVisible();
 });
+
+test("adds a read-only overview from Arches' map tiles, signed in", async ({
+    page,
+}) => {
+    const tileAuthorizations: (string | undefined)[] = [];
+    page.on("request", (tileRequest) => {
+        if (tileRequest.url().startsWith(`${ARCHES_TEST_URL}/mvt/`)) {
+            tileAuthorizations.push(tileRequest.headers()["authorization"]);
+        }
+    });
+    await openArchesPanel(page);
+    await signIn(page, EDITOR_USERNAME);
+
+    const resourceModelGroup = archesPanel(page)
+        .locator(".resource-model-group")
+        .filter({ hasText: "GeoLibre Test Asset" });
+    await expect(
+        resourceModelGroup.getByRole("button", {
+            name: "Add Location to the map",
+        }),
+    ).toBeVisible();
+    const overview = resourceModelGroup.getByRole("button", {
+        name: "Add a read-only overview of Location from map tiles",
+    });
+    test.skip(
+        (await overview.count()) === 0,
+        "Needs GeoLibre's vector tile layers with request headers (opengeos/GeoLibre#3140, #3142).",
+    );
+    await overview.click();
+
+    await expect(
+        layerRow(page, "GeoLibre Test Asset: Location (overview)"),
+    ).toBeVisible();
+    await expect.poll(() => tileAuthorizations.length).toBeGreaterThan(0);
+    expect(
+        tileAuthorizations.every((authorization) =>
+            authorization?.startsWith("Bearer "),
+        ),
+    ).toBe(true);
+});
