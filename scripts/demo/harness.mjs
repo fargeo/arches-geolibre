@@ -26,7 +26,11 @@ export const GEOLIBRE_URL = `http://localhost:${GEOLIBRE_PORT}`;
 export const EDITOR_USERNAME = "geolibre_editor";
 const TEST_PASSWORD = "geolibre-test-password";
 const PASSWORD_CLIENT_ID = "arches-geolibre-test";
-const VIEWPORT = { width: 1440, height: 900 };
+// DEMO_VIEWPORT=1600x900 records at another size, e.g. 16:9 for slides.
+const [viewportWidth, viewportHeight] = (process.env.DEMO_VIEWPORT ?? "1440x900")
+    .split("x")
+    .map(Number);
+const VIEWPORT = { width: viewportWidth, height: viewportHeight };
 
 export async function fetchEditorToken() {
     const response = await fetch(`${ARCHES_URL}/o/token/`, {
